@@ -231,6 +231,9 @@ static void CreateVanillaMappings()
         {"resetBlockRemoving", "resetBlockRemoving"},
         {"getBlockPos", "getBlockPos"},
         {"isOnSameTeam", "isOnSameTeam"},
+        {"getDisplayName", "getDisplayName"},
+        {"getUnformattedTextForChat", "getUnformattedTextForChat"},
+        {"getFormattedText", "getFormattedText"},
     };
 
     for (const auto& pair : s_VanillaFieldMappings)
@@ -368,6 +371,9 @@ static void ApplySrgMappings()
         {"setAngles", "func_70082_b"},
         {"getBlockPos", "func_174894_a"},
         {"isOnSameTeam", "func_142054_a"},
+        {"getDisplayName", "func_145748_c_"},
+        {"getUnformattedTextForChat", "func_150261_e"},
+        {"getFormattedText", "func_150254_d"},
     };
 
     for (const auto& pair : s_SrgFieldMappings)
@@ -411,6 +417,9 @@ static void ApplyLunarMappings()
         {"displayGuiScreen", "displayGuiScreen"},
         {"getMinecraft", "getMinecraft"},
         {"isOnSameTeam", "isOnSameTeam"},
+        {"getDisplayName", "getDisplayName"},
+        {"getUnformattedTextForChat", "getUnformattedTextForChat"},
+        {"getFormattedText", "getFormattedText"},
     };
 
     for (const auto& pair : s_LunarFieldMappings)
@@ -576,6 +585,9 @@ static void ApplyBadlionMappings()
         {"setAngles", "b"},
         {"getBlockPos", "a"},
         {"isOnSameTeam", "a"},
+        {"getDisplayName", "f_"},
+        {"getUnformattedTextForChat", "e"},
+        {"getFormattedText", "d"},
     };
 
     for (const auto& pair : s_BadlionClassMappings)
@@ -617,6 +629,9 @@ static void ApplyCheatBreakerMappings()
     s_FieldMappings["height"] = "IllIllIllIIlIlIlIlllIIllI";
 
     s_MethodMappings["getName"] = "IlIlIllIlIlIlllIlIIIIIllI";
+    s_MethodMappings["getDisplayName"] = "IlIIIIIIIlIlIlIIIlIIlIII";
+    s_MethodMappings["getUnformattedTextForChat"] = "IlIlIlIlIlIlIlIllIlIlIIlI";
+    s_MethodMappings["getFormattedText"] = "IllllIllllllIIIlIlIIlIlIl";
     // The real account name comes from here; the entity's own getName returns
     // translation keys on this client.
     s_MethodMappings["getGameProfile"] = "IlIllIlIlIIlllllIlllIIlll";
