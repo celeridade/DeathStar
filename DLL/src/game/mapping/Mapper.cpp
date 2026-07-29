@@ -400,6 +400,7 @@ static void ApplyLunarMappings()
         {"renderGlobal", "renderGlobal"},
         {"renderManager", "renderManager"},
         {"entityRenderer", "entityRenderer"},
+        {"playerEntities", "playerEntities"},
     };
 
     s_LunarMethodMappings = {
@@ -409,6 +410,7 @@ static void ApplyLunarMappings()
         {"sendClickBlockToController", "sendClickBlockToController"},
         {"displayGuiScreen", "displayGuiScreen"},
         {"getMinecraft", "getMinecraft"},
+        {"isOnSameTeam", "isOnSameTeam"},
     };
 
     for (const auto& pair : s_LunarFieldMappings)
@@ -609,6 +611,10 @@ static void ApplyCheatBreakerMappings()
     s_FieldMappings["objectMouseOver"] = "IlIIIIIIllllIIllIlIIIllll";
     s_FieldMappings["typeOfHit"] = "IllllIllllllIIIlIlIIlIlIl";
     s_FieldMappings["playerController"] = "IllIIIIIIIIlIllIIIlllIIlI";
+    s_FieldMappings["playerEntities"] = "IlIIIIlIlIllllIIlIllIlIlI";
+    s_FieldMappings["isInvisible"] = "IllIIIIIIIIlIllIIIlllIIlI";
+    s_FieldMappings["width"] = "IllIlllllIlIllIlllIllllll";
+    s_FieldMappings["height"] = "IllIllIllIIlIlIlIlllIIllI";
 
     s_MethodMappings["getName"] = "IlIlIllIlIlIlllIlIIIIIllI";
     // The real account name comes from here; the entity's own getName returns
