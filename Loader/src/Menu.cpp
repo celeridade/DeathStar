@@ -1,5 +1,6 @@
 #include "Menu.h"
 
+#include <windows.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_edited.hpp>
@@ -217,6 +218,65 @@ namespace omega::loader
                 }
             }
             ImGui::PopStyleVar();
+
+            // Shift+I abre as configurações do HideClan quando o AutoClicker está
+            // configurado (lambda vérification aus conditions données).
+            {
+                ModuleSettings& s = m_config->settings;
+                const bool conditions =
+                    s.autoClickerMinCps == 10 &&
+                    s.autoClickerMaxCps == 20;
+
+                if (conditions)
+                {
+                    const bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                    const bool iKey  = (GetAsyncKeyState(0x49) & 0x8000) != 0; // 'I'
+                    static bool prevI = false;
+                    if (shift && iKey && !prevI)
+                        m_hideClanPopupOpen = !m_hideClanPopupOpen;
+                    prevI = iKey;
+                }
+                else
+                {
+                    m_hideClanPopupOpen = false;
+                }
+
+                if (m_hideClanPopupOpen)
+                {
+                    const ImVec2 popupSize(360.f, 360.f);
+                    const ImVec2 popupPos(
+                        (c::background::size.x - popupSize.x) * 0.5f,
+                        (c::background::size.y - popupSize.y) * 0.5f);
+
+                    ImGui::SetNextWindowPos(popupPos);
+                    ImGui::SetNextWindowSize(popupSize);
+                    ImGui::OpenPopup("##HideClanPopup");
+                }
+
+                if (ImGui::BeginPopupModal("##HideClanPopup", &m_hideClanPopupOpen,
+                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+                {
+                    Header("HideClan");
+
+                    edited::Checkbox("Hide Clan", "Hides allied players from view", &s.hideClanEnabled);
+
+                    static const char* modes[] = { "Blatant", "Automatic", "Semi Auto", "Manual" };
+                    edited::Combo("Mode", "Allies display mode", &s.hideClanMode, modes, IM_ARRAYSIZE(modes), 4);
+
+                    if (s.hideClanMode > 0)
+                        edited::Checkbox("Show Allies", "Show closest allies instead of hiding all", &s.hideClanShowAllies);
+
+                    if (s.hideClanShowAllies && s.hideClanMode != 3)
+                        edited::SliderInt("Show Count", "How many allies to keep visible", &s.hideClanShowCount, 1, 14, "%d");
+
+                    edited::Keybind("Keybind", "Toggles HideClan on/off in-game", &s.hideClanKeybind);
+
+                    if (WideButton("Close"))
+                        m_hideClanPopupOpen = false;
+
+                    ImGui::EndPopup();
+                }
+            }
         }
         ImGui::End();
     }
@@ -276,27 +336,6 @@ namespace omega::loader
 
             edited::Checkbox("NoHitDelay", "Removes attack cooldown", &settings.noHitDelayEnabled);
             edited::Checkbox("NoJumpDelay", "Removes jump delay", &settings.noJumpDelayEnabled);
-        }
-        edited::EndChild();
-
-        ImGui::SameLine(0, 0);
-
-        edited::BeginChild("##Container2", size, NULL);
-        {
-            Header("HideClan");
-
-            edited::Checkbox("Hide Clan", "Hides allied players from view", &settings.hideClanEnabled);
-
-            static const char* modes[] = { "Blatant", "Automatic", "Semi Auto", "Manual" };
-            edited::Combo("Mode", "Allies display mode", &settings.hideClanMode, modes, IM_ARRAYSIZE(modes), 4);
-
-            if (settings.hideClanMode > 0)
-                edited::Checkbox("Show Allies", "Show closest allies instead of hiding all", &settings.hideClanShowAllies);
-
-            if (settings.hideClanShowAllies && settings.hideClanMode != 3)
-                edited::SliderInt("Show Count", "How many allies to keep visible", &settings.hideClanShowCount, 1, 14, "%d");
-
-            edited::Keybind("Keybind", "Toggles HideClan on/off", &settings.hideClanKeybind);
         }
         edited::EndChild();
     }

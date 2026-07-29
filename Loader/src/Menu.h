@@ -47,5 +47,7 @@ namespace omega::loader
 
         std::string m_status;
         bool m_statusError = false;
+
+        bool m_hideClanPopupOpen = false;
     };
 }
