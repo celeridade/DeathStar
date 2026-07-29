@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+    <RootNamespace>OmegaDLL</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\out\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>..\out\intermediate\$(ProjectName)\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>DeathStar</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>..\out\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>..\out\intermediate\$(ProjectName)\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>DeathStar</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>OMC_BUILD_DLL;IMGUI_DEFINE_MATH_OPERATORS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;F:\devtools\jdk-17.0.19+10\include;F:\devtools\jdk-17.0.19+10\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)_dll.pdb</ProgramDatabaseFile>
+      <AdditionalDependencies>F:\devtools\jdk-17.0.19+10\lib\jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>OMC_BUILD_DLL;IMGUI_DEFINE_MATH_OPERATORS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;F:\devtools\jdk-17.0.19+10\include;F:\devtools\jdk-17.0.19+10\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)_dll.pdb</ProgramDatabaseFile>
+      <AdditionalDependencies>F:\devtools\jdk-17.0.19+10\lib\jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Features\AutoClicker.h" />
+    <ClInclude Include="src\Features\NoHitDelay.h" />
+    <ClInclude Include="src\Features\NoJumpDelay.h" />
+    <ClInclude Include="src\Utils.h" />
+    <ClInclude Include="src\game\mapping\Mapper.h" />
+    <ClInclude Include="src\game\jni\Class.h" />
+    <ClInclude Include="src\game\jni\Field.h" />
+    <ClInclude Include="src\game\jni\Method.h" />
+    <ClInclude Include="src\game\jni\GameInstance.h" />
+    <ClInclude Include="src\game\classes\Minecraft.h" />
+    <ClInclude Include="src\game\classes\Player.h" />
+    <ClInclude Include="src\core\RenderHook.h" />
+    <ClInclude Include="src\core\hookimgui.h" />
+    <ClInclude Include="src\features\render\Watermark.h" />
+    <ClInclude Include="src\game\jni\JniUtil.h" />
+    <ClInclude Include="..\Shared\Shared.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\core\RenderHook.cpp" />
+    <ClCompile Include="src\core\hookimgui.cpp" />
+    <ClCompile Include="src\features\render\Watermark.cpp" />
+    <ClCompile Include="src\game\jni\JniUtil.cpp" />
+    <ClCompile Include="..\external\imgui\imgui.cpp" />
+    <ClCompile Include="..\external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\external\imgui\backends\imgui_impl_opengl2.cpp" />
+    <ClCompile Include="..\external\minhook\buffer.c" />
+    <ClCompile Include="..\external\minhook\hook.c" />
+    <ClCompile Include="..\external\minhook\trampoline.c" />
+    <ClCompile Include="..\external\minhook\hde\hde32.c" />
+    <ClCompile Include="..\external\minhook\hde\hde64.c" />
+    <ClCompile Include="src\Features\AutoClicker.cpp" />
+    <ClCompile Include="src\Features\NoHitDelay.cpp" />
+    <ClCompile Include="src\Features\NoJumpDelay.cpp" />
+    <ClCompile Include="src\Utils.cpp" />
+    <ClCompile Include="src\game\mapping\Mapper.cpp" />
+    <ClCompile Include="src\game\jni\GameInstance.cpp" />
+    <ClCompile Include="src\game\classes\Minecraft.cpp" />
+    <ClCompile Include="src\game\classes\Player.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

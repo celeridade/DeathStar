@@ -1,0 +1,28 @@
+# Visual Studio
+.vs/
+*.sln.docstates
+*.user
+*.suo
+
+# Build output
+out/
+Debug/
+Release/
+x64/
+x86/
+
+# Intermediate files
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.ipdb
+*.iobj
+
+# ReSharper
+*.DotSettings.user
+
+# Windows
+Thumbs.db
+Desktop.ini

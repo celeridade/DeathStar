@@ -1,0 +1,57 @@
+#pragma once
+#include <windows.h>
+
+#ifdef OMC_BUILD_DLL
+#define OMC_DLL __declspec(dllexport)
+#else
+#define OMC_DLL __declspec(dllimport)
+#endif
+
+namespace omega::shared {
+    inline const wchar_t* PROCESS_NAMES[] = { L"minecraft.exe", L"javaw.exe", L"java.exe" };
+    inline constexpr int PROCESS_NAME_COUNT = 3;
+    inline constexpr const wchar_t* NAME = L"DeathStar";
+    inline constexpr const wchar_t* DLL_NAME = L"DeathStar.dll";
+    inline constexpr const wchar_t* WINDOW_CLASS = L"DeathStarLoader";
+    inline constexpr int WINDOW_WIDTH = 900;
+    inline constexpr int WINDOW_HEIGHT = 515;
+    inline constexpr const wchar_t* SHARED_MEM_NAME = L"DeathStar::SharedConfig";
+    inline constexpr const wchar_t* MUTEX_NAME = L"DeathStar::Loader";
+
+    struct SharedConfig {
+        bool autoClickerEnabled = false;
+        int autoClickerMinCps = 8;
+        int autoClickerMaxCps = 12;
+        bool autoClickerJitter = false;
+        bool autoClickerOnlyWhileHolding = true;
+        bool autoClickerDontClickInMenus = true;
+        bool autoClickerBreakBlocks = false;
+        // Virtual-key code that toggles the clicker on/off. 0 = unbound (always
+        // on). 0x05/0x06 are the side mouse buttons (M4/M5). Hitting is always M1.
+        int autoClickerKeybind = 0;
+        bool noHitDelayEnabled = false;
+        bool noJumpDelayEnabled = false;
+
+        // Watermark drawn inside the game, not in the loader window.
+        bool watermarkEnabled = true;
+        int watermarkCorner = 0;        // 0 = top left, 1 = top right, 2 = bottom left, 3 = bottom right
+        bool watermarkName = true;
+        bool watermarkUser = true;
+        bool watermarkFps = true;
+        bool watermarkCps = false;
+        bool watermarkTime = true;
+        float watermarkColor[3] = { 222 / 255.f, 51 / 255.f, 61 / 255.f };
+
+        // HideClan settings
+    bool hideClanEnabled = false;
+    int hideClanKeybind = 0;       // VK toggle; 0 = unbound
+    bool hideClanShowAllies = false;
+    int hideClanMode = 0;           // 0=Blatant, 1=Automatic, 2=Semi Auto, 3=Manual
+    int hideClanShowCount = 5;
+
+    // Written by the DLL, read by the Loader.
+    bool dllAttached = false;
+    // Written by the Loader, read by the DLL: asks it to unload itself.
+    bool shutdownRequested = false;
+    };
+}
