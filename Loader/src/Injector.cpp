@@ -104,6 +104,90 @@ namespace omega::loader
             EnumWindows(TitleForPidProc, reinterpret_cast<LPARAM>(&search));
             return ToUtf8(search.title);
         }
+
+        // Collects every "1.8.9" style version in a title, in order.
+        std::vector<std::string> VersionsIn(const std::string& text)
+        {
+            std::vector<std::string> found;
+
+            for (size_t i = 0; i < text.size(); i++)
+            {
+                if (!isdigit(static_cast<unsigned char>(text[i])))
+                    continue;
+
+                size_t end = i;
+                int dots = 0;
+                while (end < text.size() &&
+                       (isdigit(static_cast<unsigned char>(text[end])) || text[end] == '.'))
+                {
+                    if (text[end] == '.') dots++;
+                    end++;
+                }
+
+                if (dots >= 1 && dots <= 2 && (end - i) >= 3)
+                    found.push_back(text.substr(i, end - i));
+
+                i = end;
+            }
+
+            return found;
+        }
+
+        // The game version, not the client's own build number. Titles look like
+        // "Badlion Minecraft Client v4.4.4-... (1.8.9)", where 4.4.4 is the
+        // launcher build and the parenthesised one is Minecraft, so that is
+        // preferred. Minecraft versions also always start with "1.".
+        std::string VersionFromTitle(const std::string& title)
+        {
+            const size_t open = title.rfind('(');
+            if (open != std::string::npos)
+            {
+                const size_t close = title.find(')', open);
+                if (close != std::string::npos)
+                {
+                    const auto inner = VersionsIn(title.substr(open + 1, close - open - 1));
+                    if (!inner.empty())
+                        return inner.front();
+                }
+            }
+
+            for (const std::string& version : VersionsIn(title))
+            {
+                if (version.rfind("1.", 0) == 0)
+                    return version;
+            }
+
+            return {};
+        }
+
+        // Client titles are long ("Badlion Minecraft Client v4.4.4-f8775e4-... (1.8.9)"),
+        // so the picker shows just the client and its version: "Badlion 1.8.9".
+        std::string ShortClientName(const std::string& title)
+        {
+            if (title.empty())
+                return {};
+
+            struct Known { const char* needle; const char* name; };
+            static const Known clients[] = {
+                { "Badlion",      "Badlion" },
+                { "Lunar",        "Lunar" },
+                { "CheatBreaker", "CheatBreaker" },
+                { "Feather",      "Feather" },
+                { "Forge",        "Forge" },
+                { "Minecraft",    "Minecraft" },
+            };
+
+            for (const Known& client : clients)
+            {
+                if (title.find(client.needle) == std::string::npos)
+                    continue;
+
+                const std::string version = VersionFromTitle(title);
+                return version.empty() ? client.name : std::string(client.name) + " " + version;
+            }
+
+            return title;
+        }
     }
 
     void Injector::ResolveDllPath()
@@ -197,8 +281,9 @@ namespace omega::loader
                     process.name = entry.szExeFile;
                     process.nameUtf8 = ToUtf8(process.name);
                     process.title = WindowTitleForPid(process.pid);
+                    process.shortName = ShortClientName(process.title);
 
-                    // Window title once the game has one, exe name before that.
+                    // Short client name once the game has a window, exe name before that.
                     process.label = process.Display();
 
                     if (HANDLE handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process.pid))

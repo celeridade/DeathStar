@@ -11,12 +11,13 @@ namespace omega::loader
         DWORD pid = 0;
         std::wstring name;
         std::string nameUtf8;   // "javaw.exe"
-        std::string title;      // the game window's title, e.g. "CheatBreaker 1.8.9"
+        std::string title;      // raw window title, e.g. "Badlion Minecraft Client v4.4.4-... (1.8.9)"
+        std::string shortName;  // trimmed for the picker, e.g. "Badlion 1.8.9"
         std::string label;      // what the combo shows, kept short
         bool is64bit = true;
 
-        // Window title when the game has one up, exe name until then.
-        const std::string& Display() const { return title.empty() ? nameUtf8 : title; }
+        // Short client name when we could work one out, exe name until then.
+        const std::string& Display() const { return shortName.empty() ? nameUtf8 : shortName; }
     };
 
     class Injector

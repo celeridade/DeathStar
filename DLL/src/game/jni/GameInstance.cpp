@@ -387,6 +387,18 @@ GameVersions GameInstance::DetectGameVersion()
         return CHEATBREAKER;
     }
 
+    // Lunar ships its own named classes and is checked before the notch probe:
+    // some Lunar builds also carry obfuscated classes, and matching those first
+    // would mislabel it as Badlion and load the wrong table.
+    testClass = ResolveClass(m_Env, "com.moonsworth.lunar.genesis.Genesis");
+    if (testClass)
+    {
+        m_Env->DeleteLocalRef(testClass);
+        return LUNAR;
+    }
+
+    // "ave" is net.minecraft.client.Minecraft under 1.8.9 notch obfuscation,
+    // which is what Badlion runs.
     testClass = ResolveClass(m_Env, "ave");
     if (testClass)
     {
@@ -398,7 +410,7 @@ GameVersions GameInstance::DetectGameVersion()
     if (testClass)
     {
         m_Env->DeleteLocalRef(testClass);
-        jclass lunarClass = ResolveClass(m_Env, "com.lunarclient.bukkitapi.nethandler.LCPacket");
+        jclass lunarClass = ResolveClass(m_Env, "com.moonsworth.lunar.genesis.Genesis");
         if (lunarClass)
         {
             m_Env->DeleteLocalRef(lunarClass);
@@ -439,6 +451,32 @@ GameVersions GameInstance::DetectGameVersion()
 
     if (m_Env->ExceptionCheck())
         m_Env->ExceptionClear();
+
+    // Last resort: the game window title. Injecting before the client's classes
+    // are loaded leaves every probe above empty, and guessing from the title
+    // beats giving up and running against vanilla names.
+    for (HWND window = GetTopWindow(nullptr); window; window = GetNextWindow(window, GW_HWNDNEXT))
+    {
+        if (!IsWindowVisible(window))
+            continue;
+
+        DWORD pid = 0;
+        GetWindowThreadProcessId(window, &pid);
+        if (pid != GetCurrentProcessId())
+            continue;
+
+        char title[256]{};
+        if (GetWindowTextA(window, title, sizeof(title)) == 0)
+            continue;
+
+        const std::string text(title);
+        if (text.find("Lunar") != std::string::npos)
+            return LUNAR;
+        if (text.find("Badlion") != std::string::npos)
+            return BADLION;
+        if (text.find("CheatBreaker") != std::string::npos)
+            return CHEATBREAKER;
+    }
 
     return UNKNOWN;
 }

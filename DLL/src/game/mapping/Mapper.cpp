@@ -434,9 +434,11 @@ static void ApplyBadlionMappings()
         {"Minecraft", "ave"},
         {"EntityPlayerSP", "blk"},
         {"WorldClient", "bqz"},
-        {"GuiScreen", "bci"},
+        // GuiScreen and MovingObjectPosition corrected against the reference
+        // Badlion table; the old values pointed at unrelated classes.
+        {"GuiScreen", "axu"},
         {"PlayerControllerMP", "bnz"},
-        {"MovingObjectPosition", "bhb"},
+        {"MovingObjectPosition", "auh"},
         {"EntityLivingBase", "pr"},
         {"Entity", "pk"},
         {"EntityPlayer", "po"},
@@ -461,12 +463,16 @@ static void ApplyBadlionMappings()
     };
 
     s_BadlionFieldMappings = {
+        {"theMinecraft", "S"},
         {"thePlayer", "h"},
         {"theWorld", "f"},
         {"currentScreen", "m"},
         {"playerController", "o"},
-        {"objectMouseOver", "v"},
-        {"leftClickCounter", "at"},
+        // These four were wrong, which is why NoHitDelay, NoJumpDelay and the
+        // break-block check silently did nothing on Badlion.
+        {"objectMouseOver", "s"},
+        {"typeOfHit", "a"},
+        {"leftClickCounter", "ag"},
         {"rightClickCounter", "au"},
         {"timer", "ah"},
         {"pointedEntity", "c"},
@@ -481,7 +487,7 @@ static void ApplyBadlionMappings()
         {"fullScreen", "v"},
         {"isGamePaused", "B"},
         {"running", "C"},
-        {"jumpTicks", "ba"},
+        {"jumpTicks", "bn"},
         {"hurtTime", "bt"},
         {"maxHurtTime", "bu"},
         {"hurtResistantTime", "S"},
@@ -548,6 +554,9 @@ static void ApplyBadlionMappings()
     };
 
     s_BadlionMethodMappings = {
+        // Needed by the watermark's username lookup.
+        {"getName", "e_"},
+        {"getGameProfile", "cd"},
         {"clickMouse", "N"},
         {"rightClickMouse", "P"},
         {"middleClickMouse", "Q"},
