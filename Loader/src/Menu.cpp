@@ -148,9 +148,13 @@ namespace omega::loader
                 for (size_t i = 0; i < processes.size(); i++)
                 {
                     const ProcessEntry& process = processes[i];
-                    const std::string label = process.Display() + "      " + std::to_string(process.pid);
 
-                    if (CenterButton(label.c_str(), y, 420.f, 50.f, true))
+                    // The button derives its id from the label, and two copies of
+                    // the same client would collide. The index keeps them apart
+                    // without putting a pid on screen.
+                    ImGui::PushID((int)i);
+
+                    if (CenterButton(process.Display().c_str(), y, 420.f, 50.f, true))
                     {
                         *m_injector->SelectedIndex() = (int)i;
 
@@ -165,6 +169,8 @@ namespace omega::loader
                             SetStatus(error, true);
                         }
                     }
+
+                    ImGui::PopID();
 
                     y += 60.f;
                 }
