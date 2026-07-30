@@ -1,10 +1,55 @@
 #include "ManualMap.h"
 #include <cstring>
+#include <tlhelp32.h>
 
 namespace omega::loader
 {
     namespace
     {
+        struct RemoteModule
+        {
+            void* base = nullptr;
+            std::wstring path;
+        };
+
+        // Where a given dll actually sits in the target. System dlls happen to
+        // share a base across processes, but anything else (jvm.dll and friends)
+        // does not, so the target's own base is the only correct answer.
+        bool FindRemoteModule(HANDLE process, const char* dllName, RemoteModule& out)
+        {
+            const DWORD pid = GetProcessId(process);
+            if (pid == 0)
+                return false;
+
+            wchar_t wanted[MAX_PATH]{};
+            if (MultiByteToWideChar(CP_ACP, 0, dllName, -1, wanted, MAX_PATH) == 0)
+                return false;
+
+            HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
+            if (snapshot == INVALID_HANDLE_VALUE)
+                return false;
+
+            MODULEENTRY32W entry{};
+            entry.dwSize = sizeof(entry);
+
+            bool found = false;
+            if (Module32FirstW(snapshot, &entry))
+            {
+                do
+                {
+                    if (_wcsicmp(entry.szModule, wanted) == 0)
+                    {
+                        out.base = entry.modBaseAddr;
+                        out.path = entry.szExePath;
+                        found = true;
+                        break;
+                    }
+                } while (Module32NextW(snapshot, &entry));
+            }
+
+            CloseHandle(snapshot);
+            return found;
+        }
         PIMAGE_NT_HEADERS NtHeaders(unsigned char* base)
         {
             PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(base);
@@ -38,45 +83,59 @@ namespace omega::loader
         #pragma pack(push, 1)
         struct LoaderStub
         {
-            unsigned char movRcx[2];        // 0: 48 B9
-            unsigned long long hinstDll;    // 2: imm64 rcx
-            unsigned char movRdx[2];        // 10: 48 BA
-            unsigned char reasonByte[4];   // 12: imm32 (sign-ext to rdx)
-            unsigned char xorR8[3];         // 16: 4D 31 C0
-            unsigned char movRax[2];        // 19: 48 B8
-            unsigned long long entry;       // 21: imm64 rax
-            unsigned char callRax[2];       // 29: FF D0
-            unsigned char ret;              // 31: C3
+            unsigned char movRcx[2];        //  0: 48 B9          mov rcx, imm64
+            unsigned long long hinstDll;    //  2: imm64
+            unsigned char movEdx;           // 10: BA             mov edx, imm32
+            unsigned int reason;            // 11: imm32 (zero-extends into rdx)
+            unsigned char xorR8[3];         // 15: 4D 31 C0       xor r8, r8
+            unsigned char movRax[2];        // 18: 48 B8          mov rax, imm64
+            unsigned long long entry;       // 20: imm64
+            unsigned char subRsp[4];        // 28: 48 83 EC 28    sub rsp, 0x28
+            unsigned char callRax[2];       // 32: FF D0          call rax
+            unsigned char addRsp[4];        // 34: 48 83 C4 28    add rsp, 0x28
+            unsigned char ret;              // 38: C3
         };
         #pragma pack(pop)
 
-        static_assert(sizeof(LoaderStub) == 32, "LoaderStub must be 32 bytes");
+        static_assert(sizeof(LoaderStub) == 39, "LoaderStub must be 39 bytes");
 
         void BuildStub(LoaderStub& stub, unsigned long long hinst, unsigned long long entry)
         {
             std::memset(&stub, 0, sizeof(stub));
-            // mov rcx, imm64
+
+            // mov rcx, hinst
             stub.movRcx[0] = 0x48;
             stub.movRcx[1] = 0xB9;
             stub.hinstDll  = hinst;
-            // mov rdx, imm32 sign-extended (48 BA <4 bytes>)
-            stub.movRdx[0] = 0x48;
-            stub.movRdx[1] = 0xBA;
-            stub.reasonByte[0] = 0x01;
-            stub.reasonByte[1] = 0x00;
-            stub.reasonByte[2] = 0x00;
-            stub.reasonByte[3] = 0x00;
+
+            // mov edx, 1 (DLL_PROCESS_ATTACH). Must be the 32-bit form: the
+            // 64-bit "48 BA" needs an 8-byte immediate, and feeding it only four
+            // makes the CPU eat the following instructions as part of the
+            // immediate, so execution runs off into garbage.
+            stub.movEdx = 0xBA;
+            stub.reason = 1;
+
             // xor r8, r8
             stub.xorR8[0] = 0x4D;
             stub.xorR8[1] = 0x31;
             stub.xorR8[2] = 0xC0;
-            // mov rax, imm64
+
+            // mov rax, entry
             stub.movRax[0] = 0x48;
             stub.movRax[1] = 0xB8;
             stub.entry     = entry;
+
+            // sub rsp, 0x28 - 32 bytes of shadow space the callee is allowed to
+            // use, plus 8 to land the call on a 16-byte aligned rsp.
+            stub.subRsp[0] = 0x48; stub.subRsp[1] = 0x83; stub.subRsp[2] = 0xEC; stub.subRsp[3] = 0x28;
+
             // call rax
             stub.callRax[0] = 0xFF;
             stub.callRax[1] = 0xD0;
+
+            // add rsp, 0x28
+            stub.addRsp[0] = 0x48; stub.addRsp[1] = 0x83; stub.addRsp[2] = 0xC4; stub.addRsp[3] = 0x28;
+
             // ret
             stub.ret = 0xC3;
         }
@@ -148,15 +207,45 @@ namespace omega::loader
             {
                 const char* dllName = reinterpret_cast<const char*>(base + RvaToFileOffset(base, imp->Name));
 
-                HMODULE localDll = GetModuleHandleA(dllName);
+                // Prefer the copy already loaded in the target: load the very
+                // same file here (without running it) purely to read export
+                // RVAs, then rebase those onto the target's module.
+                RemoteModule remoteModule;
+                HMODULE localDll = nullptr;
+                bool freeLocal = false;
+                bool rebase = false;
+
+                if (FindRemoteModule(process, dllName, remoteModule))
+                {
+                    localDll = LoadLibraryExW(remoteModule.path.c_str(), nullptr, DONT_RESOLVE_DLL_REFERENCES);
+                    if (localDll)
+                    {
+                        freeLocal = true;
+                        rebase = true;
+                    }
+                }
+
                 if (!localDll)
-                    localDll = LoadLibraryA(dllName);
+                {
+                    localDll = GetModuleHandleA(dllName);
+                    if (!localDll)
+                    {
+                        localDll = LoadLibraryA(dllName);
+                        freeLocal = (localDll != nullptr);
+                    }
+                }
+
                 if (!localDll)
                 {
                     error = std::string("could not load imported dll: ") + dllName;
                     VirtualFreeEx(process, remoteBase, 0, MEM_RELEASE);
                     return nullptr;
                 }
+
+                // Only rebase addresses that really live inside this image;
+                // forwarded exports point elsewhere and must be used as-is.
+                unsigned char* localBase = reinterpret_cast<unsigned char*>(localDll);
+                const DWORD localSize = NtHeaders(localBase)->OptionalHeader.SizeOfImage;
 
                 DWORD thunkRva = imp->OriginalFirstThunk ? imp->OriginalFirstThunk : imp->FirstThunk;
                 DWORD thunkFile = RvaToFileOffset(base, thunkRva);
@@ -179,17 +268,31 @@ namespace omega::loader
                     if (!proc)
                     {
                         error = "could not resolve an imported function";
+                        if (freeLocal) FreeLibrary(localDll);
                         VirtualFreeEx(process, remoteBase, 0, MEM_RELEASE);
                         return nullptr;
                     }
 
-                    if (!WriteProcessMemory(process, iatSlot, &proc, sizeof(proc), nullptr))
+                    void* finalProc = reinterpret_cast<void*>(proc);
+
+                    if (rebase)
+                    {
+                        unsigned char* addr = reinterpret_cast<unsigned char*>(proc);
+                        if (addr >= localBase && addr < localBase + localSize)
+                            finalProc = reinterpret_cast<unsigned char*>(remoteModule.base) + (addr - localBase);
+                    }
+
+                    if (!WriteProcessMemory(process, iatSlot, &finalProc, sizeof(finalProc), nullptr))
                     {
                         error = "WriteProcessMemory(IAT) failed (" + std::to_string(GetLastError()) + ")";
+                        if (freeLocal) FreeLibrary(localDll);
                         VirtualFreeEx(process, remoteBase, 0, MEM_RELEASE);
                         return nullptr;
                     }
                 }
+
+                if (freeLocal)
+                    FreeLibrary(localDll);
             }
         }
 
@@ -206,9 +309,15 @@ namespace omega::loader
                 DWORD done = 0;
                 while (done < relocSize)
                 {
+                    // A zero-sized block would spin here forever.
+                    if (reloc->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
+                        break;
+
                     DWORD blockCount = (reloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
                     WORD* entry = reinterpret_cast<WORD*>(reinterpret_cast<unsigned char*>(reloc) + sizeof(IMAGE_BASE_RELOCATION));
-                    for (DWORD b = 0; b < blockCount; b++, entry++)
+                    // Index only: advancing the pointer as well would read
+                    // element 2b on step b, applying garbage relocations.
+                    for (DWORD b = 0; b < blockCount; b++)
                     {
                         DWORD type = entry[b] >> 12;
                         DWORD offset = entry[b] & 0x0FFF;

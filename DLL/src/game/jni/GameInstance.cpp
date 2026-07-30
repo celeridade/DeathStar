@@ -180,13 +180,45 @@ jclass GameInstance::ResolveClass(JNIEnv* env, const std::string& className)
     return local;
 }
 
+namespace {
+
+    // Resolved at runtime instead of linking jvm.lib. A static import would put
+    // jvm.dll in this module's import table, and the manual mapper resolves
+    // imports from the loader process, where jvm.dll is not on the search path
+    // (it lives in <java>\bin\server). Looking it up here is also more correct:
+    // we run inside the JVM, so the module is already loaded at its real base.
+    using GetCreatedJavaVMsFn = jint(JNICALL*)(JavaVM**, jsize, jsize*);
+
+    GetCreatedJavaVMsFn ResolveGetCreatedJavaVMs()
+    {
+        // The JVM ships as jvm.dll; some launchers preload it under java.dll's
+        // umbrella, so check both.
+        const wchar_t* modules[] = { L"jvm.dll", L"java.dll" };
+
+        for (const wchar_t* name : modules)
+        {
+            if (HMODULE module = GetModuleHandleW(name))
+            {
+                if (auto fn = (GetCreatedJavaVMsFn)GetProcAddress(module, "JNI_GetCreatedJavaVMs"))
+                    return fn;
+            }
+        }
+
+        return nullptr;
+    }
+}
+
 GameInstance::GameInstance()
 {
     m_Env = nullptr;
     m_Jvm = nullptr;
 
+    GetCreatedJavaVMsFn getCreatedJavaVMs = ResolveGetCreatedJavaVMs();
+    if (!getCreatedJavaVMs)
+        return;
+
     jsize count;
-    if (JNI_GetCreatedJavaVMs(&m_Jvm, 1, &count) == JNI_OK && count > 0)
+    if (getCreatedJavaVMs(&m_Jvm, 1, &count) == JNI_OK && count > 0)
     {
         if (m_Jvm->GetEnv(reinterpret_cast<void**>(&m_Env), JNI_VERSION_1_8) == JNI_OK)
         {
