@@ -77,7 +77,7 @@ namespace omega::dll::features {
         }
 
         // Reflection so the enum's obfuscated type signature never matters.
-        jfieldID typeField = jniutil::FieldByName(env, mopClazz, typeFieldName.c_str());
+        jfieldID typeField = jniutil::FieldByName(env, mopClazz, typeFieldName.c_str(), jniutil::FieldKind::Object);
         env->DeleteLocalRef(mopClazz);
 
         if (!typeField)

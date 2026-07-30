@@ -10,7 +10,7 @@ namespace
     // jfieldID stays valid while the class is loaded, and reflection to find one
     // is not cheap, so each is resolved once and kept. Only the game/main thread
     // touches these, so no locking is needed.
-    jfieldID CachedField(JNIEnv* env, jobject owner, const char* mapping)
+    jfieldID CachedField(JNIEnv* env, jobject owner, const char* mapping, jniutil::FieldKind kind)
     {
         static std::unordered_map<std::string, jfieldID> cache;
 
@@ -29,7 +29,7 @@ namespace
             return nullptr;
         }
 
-        jfieldID field = jniutil::FieldByName(env, clazz, name.c_str());
+        jfieldID field = jniutil::FieldByName(env, clazz, name.c_str(), kind);
         env->DeleteLocalRef(clazz);
 
         if (field)
@@ -45,7 +45,7 @@ namespace
         if (!env || !owner)
             return nullptr;
 
-        jfieldID field = CachedField(env, owner, mapping);
+        jfieldID field = CachedField(env, owner, mapping, jniutil::FieldKind::Object);
         if (!field)
             return nullptr;
 
@@ -64,7 +64,7 @@ namespace
         if (!env || !owner)
             return;
 
-        jfieldID field = CachedField(env, owner, mapping);
+        jfieldID field = CachedField(env, owner, mapping, jniutil::FieldKind::Int);
         if (!field)
             return;
 
@@ -141,7 +141,7 @@ jobject Minecraft::GetTheMinecraft(JNIEnv* env)
     const std::string fieldName = Mapper::Get("theMinecraft", FIELD_MAPPING);
     if (!fieldName.empty())
     {
-        if (jfieldID field = jniutil::FieldByName(env, clazz, fieldName.c_str()))
+        if (jfieldID field = jniutil::FieldByName(env, clazz, fieldName.c_str(), jniutil::FieldKind::Object))
         {
             instance = env->GetStaticObjectField(clazz, field);
             if (env->ExceptionCheck())

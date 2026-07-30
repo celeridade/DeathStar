@@ -21,7 +21,7 @@ void Player::SetJumpTicks(jobject player, int ticks, JNIEnv* env)
         return;
     }
 
-    jfieldID field = jniutil::FieldByName(env, clazz, fieldName.c_str());
+    jfieldID field = jniutil::FieldByName(env, clazz, fieldName.c_str(), jniutil::FieldKind::Int);
     env->DeleteLocalRef(clazz);
 
     if (!field)

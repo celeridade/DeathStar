@@ -1,4 +1,5 @@
 #include "JniUtil.h"
+#include <string>
 
 namespace jniutil
 {
@@ -9,9 +10,60 @@ namespace jniutil
             if (env->ExceptionCheck())
                 env->ExceptionClear();
         }
+
+        // Reads java.lang.reflect.Field.getType().getName(), which is "int",
+        // "float", "boolean", ... for primitives and the class name otherwise.
+        bool FieldTypeMatches(JNIEnv* env, jobject field, FieldKind kind)
+        {
+            if (kind == FieldKind::Any)
+                return true;
+
+            jclass fieldCls = env->GetObjectClass(field);
+            if (!fieldCls) { Clear(env); return false; }
+
+            jmethodID getType = env->GetMethodID(fieldCls, "getType", "()Ljava/lang/Class;");
+            env->DeleteLocalRef(fieldCls);
+            if (!getType) { Clear(env); return false; }
+
+            jclass type = (jclass)env->CallObjectMethod(field, getType);
+            if (env->ExceptionCheck()) { env->ExceptionClear(); type = nullptr; }
+            if (!type) return false;
+
+            jclass classCls = env->GetObjectClass(type);
+            jmethodID getName = classCls ? env->GetMethodID(classCls, "getName", "()Ljava/lang/String;") : nullptr;
+            if (classCls) env->DeleteLocalRef(classCls);
+            if (!getName) { Clear(env); env->DeleteLocalRef(type); return false; }
+
+            jstring nameObj = (jstring)env->CallObjectMethod(type, getName);
+            if (env->ExceptionCheck()) { env->ExceptionClear(); nameObj = nullptr; }
+            env->DeleteLocalRef(type);
+            if (!nameObj) return false;
+
+            std::string typeName;
+            if (const char* utf = env->GetStringUTFChars(nameObj, nullptr))
+            {
+                typeName = utf;
+                env->ReleaseStringUTFChars(nameObj, utf);
+            }
+            env->DeleteLocalRef(nameObj);
+
+            switch (kind)
+            {
+            case FieldKind::Int:     return typeName == "int";
+            case FieldKind::Float:   return typeName == "float";
+            case FieldKind::Boolean: return typeName == "boolean";
+            case FieldKind::Object:
+                // Anything that is not one of the eight primitives is a reference.
+                return typeName != "int" && typeName != "float" && typeName != "boolean" &&
+                       typeName != "long" && typeName != "double" && typeName != "short" &&
+                       typeName != "byte" && typeName != "char" && typeName != "void";
+            default:
+                return true;
+            }
+        }
     }
 
-    jfieldID FieldByName(JNIEnv* env, jclass clazz, const char* name)
+    jfieldID FieldByName(JNIEnv* env, jclass clazz, const char* name, FieldKind kind)
     {
         if (!env || !clazz || !name || !*name)
             return nullptr;
@@ -37,6 +89,17 @@ namespace jniutil
             {
                 env->ExceptionClear();
                 field = nullptr;
+            }
+
+            if (field)
+            {
+                // A mapping can name a real field of the wrong type. Writing an
+                // int into an object slot corrupts the heap, so refuse it here.
+                if (!FieldTypeMatches(env, field, kind))
+                {
+                    env->DeleteLocalRef(field);
+                    field = nullptr;
+                }
             }
 
             if (field)
