@@ -136,6 +136,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
     menu.SetConfig(&config);
     menu.SetInjector(&injector);
     menu.SetShared(sharedMemory.Get());
+    injector.SetShared(sharedMemory.Get());
 
     bool done = false;
     // Tracks the enabled flag we last wrote, so a change coming back from the

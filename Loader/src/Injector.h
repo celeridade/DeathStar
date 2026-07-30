@@ -40,6 +40,10 @@ namespace omega::loader
         const std::wstring& DllPath() const { return m_dllPath; }
         const std::string& DllPathUtf8() const { return m_dllPathUtf8; }
 
+        // Set the shared memory so Inject can flag the dll about its load path
+        // before the dll main thread reads it.
+        void SetShared(shared::SharedConfig* shared) { m_shared = shared; }
+
     private:
         void ResolveDllPath();
         bool IsDllLoaded(DWORD pid) const;
@@ -52,5 +56,13 @@ namespace omega::loader
         std::wstring m_dllPath;
         std::string m_dllPathUtf8;
         ULONGLONG m_lastPoll = 0;
+
+        // Manual mapping: the embedded dll bytes loaded from the resource and
+        // the base address of the image we mapped into the target. The address
+        // is zero when nothing is mapped, which replaces the old "DeathStar.dll
+        // in the module list" check.
+        std::vector<unsigned char> m_dllBytes;
+        void* m_remoteBase = nullptr;
+        shared::SharedConfig* m_shared = nullptr;
     };
 }

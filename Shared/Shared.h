@@ -47,5 +47,9 @@ namespace omega::shared {
     bool dllAttached = false;
     // Written by the Loader, read by the DLL: asks it to unload itself.
     bool shutdownRequested = false;
+    // Written by the Loader, read by the DLL: dll was manual-mapped into the
+    // target, so it must NOT call FreeLibraryAndExitThread on shutdown (there
+    // is no module list entry). The loader frees the region itself.
+    bool manualMapped = false;
     };
 }

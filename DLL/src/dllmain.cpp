@@ -23,6 +23,7 @@ static HANDLE g_hMapFile = nullptr;
 static HMODULE g_hModule = nullptr;
 static bool g_running = false;
 static bool g_minHookReady = false;
+static bool g_exitManualMapped = false;
 
 static void SyncSettings() {
     if (!g_sharedConfig) return;
@@ -183,6 +184,9 @@ static void MainThread() {
     if (g_sharedConfig) {
         g_sharedConfig->dllAttached = false;
         g_sharedConfig->shutdownRequested = false;
+        // Cache the manual-mapped flag before unmapping. The shutdown thread
+        // reads this to decide between ExitThread and FreeLibraryAndExitThread.
+        g_exitManualMapped = g_sharedConfig->manualMapped;
         UnmapViewOfFile(g_sharedConfig);
         g_sharedConfig = nullptr;
     }
@@ -203,10 +207,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             [](LPVOID) -> DWORD {
                 MainThread();
 
-                // Still running means the Loader asked us to unload: free ourselves.
+                // Still running means the Loader asked us to unload.
                 if (g_running) {
                     g_running = false;
-                    FreeLibraryAndExitThread(g_hModule, 0);
+                    // Manual-mapped images are not in the target's module list,
+                    // so FreeLibrary would do nothing useful (or crash). Just
+                    // exit this thread; the loader frees the region.
+                    if (g_exitManualMapped) {
+                        ExitThread(0);
+                    } else {
+                        FreeLibraryAndExitThread(g_hModule, 0);
+                    }
                 }
 
                 return 0;

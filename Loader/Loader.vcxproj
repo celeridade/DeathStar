@@ -118,6 +118,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\Injector.cpp" />
+    <ClCompile Include="src\ManualMap.cpp" />
     <ClCompile Include="src\Menu.cpp" />
     <ClCompile Include="src\SharedMemory.cpp" />
     <ClCompile Include="..\external\imgui\imgui.cpp" />

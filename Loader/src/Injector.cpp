@@ -1,9 +1,11 @@
 #include "Injector.h"
 #include "../resource.h"
+#include "ManualMap.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cstring>
 #include <cwchar>
+#include <vector>
 
 namespace omega::loader
 {
@@ -35,11 +37,10 @@ namespace omega::loader
             return std::string(what) + " (error " + std::to_string(GetLastError()) + ")";
         }
 
-        // The dll is baked into the exe as a resource. Write it out to a temp
-        // folder so a single .exe carries everything; LoadLibrary needs a path.
-        // The file keeps the name DeathStar.dll so the module shows up under that
-        // name for the injected/eject checks.
-        bool ExtractEmbeddedDll(std::wstring& outPath)
+        // The dll is baked into the exe as a resource. With manual mapping it
+        // never touches disk: its bytes go straight from the exe's resource
+        // table into the target process's memory.
+        bool LoadEmbeddedDll(std::vector<unsigned char>& outBytes)
         {
             HMODULE self = GetModuleHandleW(nullptr);
             HRSRC info = FindResourceW(self, MAKEINTRESOURCEW(IDR_OMEGADLL), RT_RCDATA);
@@ -52,38 +53,8 @@ namespace omega::loader
             if (!data || size == 0)
                 return false;
 
-            wchar_t temp[MAX_PATH]{};
-            if (GetTempPathW(MAX_PATH, temp) == 0)
-                return false;
-
-            std::wstring dir = std::wstring(temp) + L"DeathStar";
-            CreateDirectoryW(dir.c_str(), nullptr);
-
-            const std::wstring path = dir + L"\\" + shared::DLL_NAME;
-
-            HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr,
-                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-            if (file == INVALID_HANDLE_VALUE)
-            {
-                // A game already loaded it, so the file is locked. That copy is
-                // ours, so just reuse it.
-                if (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES)
-                {
-                    outPath = path;
-                    return true;
-                }
-                return false;
-            }
-
-            DWORD written = 0;
-            const BOOL ok = WriteFile(file, data, size, &written, nullptr);
-            CloseHandle(file);
-
-            if (!ok || written != size)
-                return false;
-
-            outPath = path;
+            outBytes.resize(size);
+            std::memcpy(outBytes.data(), data, size);
             return true;
         }
 
@@ -137,24 +108,22 @@ namespace omega::loader
 
     void Injector::ResolveDllPath()
     {
+        // Manual mapping: load the dll bytes straight from the embedded resource.
+        // No disk file is involved, so there is no %temp%\DeathStar.dll to delete.
+        if (LoadEmbeddedDll(m_dllBytes))
+        {
+            m_dllFound = true;
+            m_dllPath.clear();
+            m_dllPathUtf8.clear();
+            return;
+        }
+
+        // Fallback: a DeathStar.dll next to the exe (dev builds only).
+        m_dllFound = false;
         wchar_t path[MAX_PATH]{};
         if (GetModuleFileNameW(nullptr, path, MAX_PATH) == 0)
-        {
-            m_dllFound = false;
             return;
-        }
 
-        // Prefer the dll embedded in the exe (single-file distribution).
-        std::wstring embedded;
-        if (ExtractEmbeddedDll(embedded))
-        {
-            m_dllPath = embedded;
-            m_dllPathUtf8 = ToUtf8(m_dllPath);
-            m_dllFound = true;
-            return;
-        }
-
-        // Fallback: a DeathStar.dll sitting next to the exe (dev builds).
         std::wstring directory(path);
         const size_t slash = directory.find_last_of(L'\\');
         if (slash != std::wstring::npos)
@@ -169,6 +138,13 @@ namespace omega::loader
 
     bool Injector::IsDllLoaded(DWORD pid) const
     {
+        // Manual-mapped	ds don't show up in the target's module list, so the
+        // region we allocated is the only proof we have. When the loader was
+        // closed and reopened the address is gone and we cannot tell.
+        if (m_remoteBase)
+            return true;
+
+        // Disk-based LoadLibrary path: DeathStar.dll shows up in the module list.
         HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
         if (snapshot == INVALID_HANDLE_VALUE)
             return false;
@@ -323,48 +299,80 @@ namespace omega::loader
         }
 
         bool success = false;
-        const SIZE_T size = (m_dllPath.size() + 1) * sizeof(wchar_t);
-        LPVOID remotePath = VirtualAllocEx(process, nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        void* remoteBase = nullptr;
 
-        if (!remotePath)
+        // Manual mapping path: the embedded dll bytes go straight into memory,
+        // nothing is ever written to disk.
+        if (!m_dllBytes.empty())
         {
-            error = LastErrorText("Could not allocate memory in the process");
-        }
-        else if (!WriteProcessMemory(process, remotePath, m_dllPath.c_str(), size, nullptr))
-        {
-            error = LastErrorText("Could not write the dll path into the process");
-        }
-        else
-        {
-            // kernel32 sits at the same address in every process of the session,
-            // so the local LoadLibraryW address is valid in the target too.
-            auto loadLibrary = (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW");
+            // Tell the dll, before it runs, how it was loaded so its shutdown
+            // path can skip FreeLibraryAndExitThread (which would crash on a
+            // manually mapped image).
+            if (m_shared)
+                m_shared->manualMapped = true;
 
-            HANDLE thread = loadLibrary
-                ? CreateRemoteThread(process, nullptr, 0, loadLibrary, remotePath, 0, nullptr)
-                : nullptr;
-
-            if (!thread)
+            remoteBase = ManualMapDll(m_dllBytes.data(), m_dllBytes.size(), process, error);
+            if (remoteBase)
             {
-                error = LastErrorText("Could not start the remote thread");
+                success = true;
+                m_remoteBase = remoteBase;
+            }
+            else if (m_shared)
+            {
+                m_shared->manualMapped = false;
+            }
+        }
+        else if (!m_dllPath.empty())
+        {
+            if (m_shared)
+                m_shared->manualMapped = false;
+
+            // Disk fallback (dev builds only): LoadLibrary from the path on disk.
+            const SIZE_T size = (m_dllPath.size() + 1) * sizeof(wchar_t);
+            LPVOID remotePath = VirtualAllocEx(process, nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+            if (!remotePath)
+            {
+                error = LastErrorText("Could not allocate memory in the process");
+            }
+            else if (!WriteProcessMemory(process, remotePath, m_dllPath.c_str(), size, nullptr))
+            {
+                error = LastErrorText("Could not write the dll path into the process");
             }
             else
             {
-                WaitForSingleObject(thread, 10000);
+                auto loadLibrary = (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW");
 
-                DWORD exitCode = 0;
-                GetExitCodeThread(thread, &exitCode);
-                CloseHandle(thread);
+                HANDLE thread = loadLibrary
+                    ? CreateRemoteThread(process, nullptr, 0, loadLibrary, remotePath, 0, nullptr)
+                    : nullptr;
 
-                if (exitCode == 0)
-                    error = "LoadLibrary failed inside the game, the dll was rejected.";
+                if (!thread)
+                {
+                    error = LastErrorText("Could not start the remote thread");
+                }
                 else
-                    success = true;
-            }
-        }
+                {
+                    WaitForSingleObject(thread, 10000);
 
-        if (remotePath)
-            VirtualFreeEx(process, remotePath, 0, MEM_RELEASE);
+                    DWORD exitCode = 0;
+                    GetExitCodeThread(thread, &exitCode);
+                    CloseHandle(thread);
+
+                    if (exitCode == 0)
+                        error = "LoadLibrary failed inside the game, the dll was rejected.";
+                    else
+                        success = true;
+                }
+            }
+
+            if (remotePath)
+                VirtualFreeEx(process, remotePath, 0, MEM_RELEASE);
+        }
+        else
+        {
+            error = "No embedded dll and no dll on disk.";
+        }
 
         CloseHandle(process);
 
@@ -400,6 +408,30 @@ namespace omega::loader
 
             if (!config->dllAttached)
             {
+                // Manual-mapped image: FreeLibrary cannot drop it (it is not in
+                // the module list). The dll thread already exited; we just have
+                // to free the region we allocated earlier.
+                if (m_remoteBase)
+                {
+                    HANDLE process = OpenProcess(
+                        PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE,
+                        FALSE, target->pid);
+                    if (process)
+                    {
+                        SIZE_T imageSize = 0;
+                        // We did not store the size, but VirtualQuery on the
+                        // remote base gives us the size of the allocation.
+                        MEMORY_BASIC_INFORMATION mbi{};
+                        if (VirtualQueryEx(process, m_remoteBase, &mbi, sizeof(mbi)) != 0)
+                            imageSize = mbi.RegionSize;
+                        VirtualFreeEx(process, m_remoteBase, imageSize, MEM_RELEASE);
+                        CloseHandle(process);
+                    }
+                    m_remoteBase = nullptr;
+                    m_injected = false;
+                    return true;
+                }
+
                 // Give FreeLibraryAndExitThread a moment to actually drop the module.
                 for (int i = 0; i < 20 && IsDllLoaded(target->pid); i++)
                     Sleep(50);
