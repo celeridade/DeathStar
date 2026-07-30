@@ -49,5 +49,6 @@ namespace omega::loader
         bool m_statusError = false;
 
         bool m_hideClanPopupOpen = false;
+        bool m_hideClanJustOpened = false;
     };
 }

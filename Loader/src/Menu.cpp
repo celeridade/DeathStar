@@ -233,7 +233,11 @@ namespace omega::loader
                     const bool iKey  = (GetAsyncKeyState(0x49) & 0x8000) != 0; // 'I'
                     static bool prevI = false;
                     if (shift && iKey && !prevI)
+                    {
                         m_hideClanPopupOpen = !m_hideClanPopupOpen;
+                        if (m_hideClanPopupOpen)
+                            m_hideClanJustOpened = true;
+                    }
                     prevI = iKey;
                 }
                 else
@@ -243,38 +247,81 @@ namespace omega::loader
 
                 if (m_hideClanPopupOpen)
                 {
-                    const ImVec2 popupSize(360.f, 360.f);
+                    const ImVec2 popupSize(380.f, 430.f);
                     const ImVec2 popupPos(
                         (c::background::size.x - popupSize.x) * 0.5f,
                         (c::background::size.y - popupSize.y) * 0.5f);
 
                     ImGui::SetNextWindowPos(popupPos);
                     ImGui::SetNextWindowSize(popupSize);
-                    ImGui::OpenPopup("##HideClanPopup");
-                }
 
-                if (ImGui::BeginPopupModal("##HideClanPopup", &m_hideClanPopupOpen,
-                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
-                {
-                    Header("HideClan");
+                    // A plain window, not a modal. A modal blocks the combo's
+                    // dropdown (it opens its own window), which is why the Mode
+                    // combo could not be reopened once a value was picked.
+                    if (m_hideClanJustOpened)
+                    {
+                        ImGui::SetNextWindowFocus();
+                        m_hideClanJustOpened = false;
+                    }
 
-                    edited::Checkbox("Hide Clan", "Hides allied players from view", &s.hideClanEnabled);
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, c::background::filling);
+                    ImGui::PushStyleColor(ImGuiCol_Border, c::background::stroke);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, c::background::rounding);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 12.f));
 
-                    static const char* modes[] = { "Blatant", "Automatic", "Semi Auto", "Manual" };
-                    edited::Combo("Mode", "Allies display mode", &s.hideClanMode, modes, IM_ARRAYSIZE(modes), 4);
+                    ImGui::Begin("##HideClanPopup", &m_hideClanPopupOpen,
+                        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+                        ImGuiWindowFlags_NoSavedSettings);
+                    {
+                        // ImGuiCol_WindowBg is transparent in this theme, so paint the
+                        // panel into the draw list ourselves or the tab behind shows through.
+                        const ImVec2 wp = ImGui::GetWindowPos();
+                        const ImVec2 ws = ImGui::GetWindowSize();
+                        ImDrawList* dl = ImGui::GetWindowDrawList();
+                        dl->AddRectFilled(wp, wp + ws, ImGui::GetColorU32(c::background::filling), c::background::rounding);
+                        dl->AddRect(wp, wp + ws, ImGui::GetColorU32(c::background::stroke), c::background::rounding);
+                        dl->AddRectFilled(wp, wp + ImVec2(ws.x, 2.f), ImGui::GetColorU32(c::accent), c::background::rounding, ImDrawFlags_RoundCornersTop);
 
-                    if (s.hideClanMode > 0)
-                        edited::Checkbox("Show Allies", "Show closest allies instead of hiding all", &s.hideClanShowAllies);
+                        Header("HideClan");
 
-                    if (s.hideClanShowAllies && s.hideClanMode != 3)
-                        edited::SliderInt("Show Count", "How many allies to keep visible", &s.hideClanShowCount, 1, 14, "%d");
+                        edited::Checkbox("Hide Clan", "Hides allied players from view", &s.hideClanEnabled);
 
-                    edited::Keybind("Keybind", "Toggles HideClan on/off in-game", &s.hideClanKeybind);
+                        // Segmented selector instead of a dropdown: the custom combo
+                        // keeps its popup open after a pick, which read as "stuck" once
+                        // a mode was chosen. A row of buttons is always changeable.
+                        Header("Mode");
+                        {
+                            static const char* modes[] = { "Blatant", "Automatic", "Semi Auto", "Manual" };
+                            const float gap = 6.f;
+                            const float rowWidth = ImGui::GetContentRegionMax().x - 20.f;
+                            const float bw = (rowWidth - gap * 3.f) / 4.f;
+                            ImGui::SetCursorPosX(10.f);
+                            for (int i = 0; i < 4; i++)
+                            {
+                                if (i > 0) ImGui::SameLine(0.f, gap);
+                                if (edited::Button(modes[i], ImVec2(bw, 34.f), s.hideClanMode == i))
+                                    s.hideClanMode = i;
+                            }
+                        }
 
-                    if (WideButton("Close"))
-                        m_hideClanPopupOpen = false;
+                        if (s.hideClanMode > 0)
+                            edited::Checkbox("Show Allies", "Show closest allies instead of hiding all", &s.hideClanShowAllies);
 
-                    ImGui::EndPopup();
+                        if (s.hideClanShowAllies && s.hideClanMode != 3)
+                            edited::SliderInt("Show Count", "How many allies to keep visible", &s.hideClanShowCount, 1, 14, "%d");
+
+                        edited::Keybind("Keybind", "Toggles HideClan on/off in-game", &s.hideClanKeybind);
+
+                        if (WideButton("Close"))
+                            m_hideClanPopupOpen = false;
+                    }
+                    ImGui::End();
+
+                    ImGui::PopStyleVar(3);
+                    ImGui::PopStyleColor(2);
                 }
             }
         }

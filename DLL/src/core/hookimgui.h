@@ -30,6 +30,7 @@ private:
     bool m_showAllies = false;
     int m_mode = 0;
     int m_showCount = 5;
+    bool m_prevKeybindDown = false;
 
     std::atomic<bool> m_togglePending{ false };
 };

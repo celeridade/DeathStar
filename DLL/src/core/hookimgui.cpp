@@ -1,8 +1,10 @@
 #include "hookimgui.h"
 #include "../game/jni/GameInstance.h"
 #include "../game/jni/JniUtil.h"
+#include "../game/classes/Minecraft.h"
 #include "../game/mapping/Mapper.h"
 
+#include <windows.h>
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -271,8 +273,12 @@ static std::string ExtractTrailingTag(const std::string& formattedText) {
 }
 
 // ---------------------------------------------------------------------------
-// Determine if two players are on the same team using multi-layered fallback
-// logic (same approach as crimson HideClans).
+// An ally is a player who shares your clan tag, and nothing else.
+//
+// The tag is the [TAG] that trails the name; a rank that sits *before* the name
+// ("[VIP] lazer", "vip lazer") is never treated as a clan, which is the bug the
+// old color/label fallbacks caused - they hid VIPs and other non-clan players.
+// So: hide only when both names carry a trailing tag and the tags match.
 // ---------------------------------------------------------------------------
 static bool IsSameTeam(
     JNIEnv* env,
@@ -286,31 +292,18 @@ static bool IsSameTeam(
     (void)localPlayer;
     (void)otherPlayer;
     (void)env;
+    (void)localClanTag;
+    (void)otherClanTag;
 
-    // 1. Trailing [clan] tag match (works on all clients including CB)
-    std::string localTrailing = ExtractTrailingTag(localFormatted);
-    std::string otherTrailing = ExtractTrailingTag(otherFormatted);
+    const std::string localTrailing = ExtractTrailingTag(localFormatted);
+    if (localTrailing.empty())
+        return false;   // you have no clan tag, so there is nobody to hide
 
-    if (!localTrailing.empty() && !otherTrailing.empty()) {
-        if (localTrailing == otherTrailing)
-            return true;
-    }
+    const std::string otherTrailing = ExtractTrailingTag(otherFormatted);
+    if (otherTrailing.empty())
+        return false;   // they have no clan (a bare VIP/rank does not count)
 
-    // 2. Clan tag from scoreboard/team (non-CB clients)
-    if (!localClanTag.empty() && !otherClanTag.empty()) {
-        if (localClanTag == otherClanTag)
-            return true;
-    }
-
-    // 3. Ally color fallback (green name = ally, red = enemy)
-    if (IsAllyColor(localFormatted) && IsAllyColor(otherFormatted))
-        return true;
-
-    // 4. "ALLY" label fallback
-    if (HasAllyLabel(otherFormatted))
-        return true;
-
-    return false;
+    return localTrailing == otherTrailing;
 }
 
 // ---------------------------------------------------------------------------
@@ -390,23 +383,26 @@ void HideClan::RestorePlayer(JNIEnv* env, jobject player) {
 // Main tick: iterate world players, detect allies, hide them.
 // ---------------------------------------------------------------------------
 void HideClan::Tick(JNIEnv* env) {
-    if (!env || !m_enabled) return;
+    if (!env) return;
 
-    std::string mcClassName = Mapper::Get("Minecraft", CLASS_MAPPING);
-    if (mcClassName.empty()) return;
+    // Keybind toggles HideClan in-game. Detected before the enabled guard so it
+    // can turn the feature back on. 0 means unbound.
+    if (m_keybind != 0) {
+        const bool down = (GetAsyncKeyState(m_keybind) & 0x8000) != 0;
+        if (down && !m_prevKeybindDown)
+            m_togglePending.store(true);
+        m_prevKeybindDown = down;
+    }
 
-    jclass mcClass = GameInstance::ResolveClass(env, mcClassName);
-    if (!mcClass) return;
+    if (!m_enabled) return;
 
-    std::string getMcMethod = Mapper::Get("getMinecraft", METHOD_MAPPING);
-    std::string mcSig = "()L" + mcClassName + ";";
-    jmethodID getMc = env->GetStaticMethodID(mcClass, getMcMethod.c_str(), mcSig.c_str());
-    if (env->ExceptionCheck()) env->ExceptionClear();
-    if (!getMc) { env->DeleteLocalRef(mcClass); return; }
+    // The Minecraft singleton on CheatBreaker is a static field, not a
+    // getMinecraft() method, so go through the helper that already handles both.
+    jobject mc = Minecraft::GetTheMinecraft(env);
+    if (!mc) return;
 
-    jobject mc = env->CallStaticObjectMethod(mcClass, getMc);
-    if (env->ExceptionCheck()) { env->ExceptionClear(); env->DeleteLocalRef(mcClass); return; }
-    if (!mc) { env->DeleteLocalRef(mcClass); return; }
+    jclass mcClass = env->GetObjectClass(mc);
+    if (!mcClass) { env->DeleteLocalRef(mc); return; }
 
     // thePlayer
     std::string playerField = Mapper::Get("thePlayer", FIELD_MAPPING);
@@ -565,21 +561,11 @@ void HideClan::Tick(JNIEnv* env) {
 void HideClan::Shutdown(JNIEnv* env) {
     if (!env) return;
 
-    std::string mcClassName = Mapper::Get("Minecraft", CLASS_MAPPING);
-    if (mcClassName.empty()) return;
+    jobject mc = Minecraft::GetTheMinecraft(env);
+    if (!mc) return;
 
-    jclass mcClass = GameInstance::ResolveClass(env, mcClassName);
-    if (!mcClass) return;
-
-    std::string getMcMethod = Mapper::Get("getMinecraft", METHOD_MAPPING);
-    std::string mcSig = "()L" + mcClassName + ";";
-    jmethodID getMc = env->GetStaticMethodID(mcClass, getMcMethod.c_str(), mcSig.c_str());
-    if (env->ExceptionCheck()) env->ExceptionClear();
-    if (!getMc) { env->DeleteLocalRef(mcClass); return; }
-
-    jobject mc = env->CallStaticObjectMethod(mcClass, getMc);
-    if (env->ExceptionCheck()) { env->ExceptionClear(); env->DeleteLocalRef(mcClass); return; }
-    if (!mc) { env->DeleteLocalRef(mcClass); return; }
+    jclass mcClass = env->GetObjectClass(mc);
+    if (!mcClass) { env->DeleteLocalRef(mc); return; }
 
     std::string worldField = Mapper::Get("theWorld", FIELD_MAPPING);
     jfieldID worldFid = nullptr;

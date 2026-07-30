@@ -91,7 +91,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
     const DWORD exStyle = WS_EX_APPWINDOW | (kTransparentBackground ? WS_EX_LAYERED : 0);
 
     HWND hwnd = ::CreateWindowExW(exStyle, wc.lpszClassName, shared::NAME,
-        WS_OVERLAPPED, x, y, kWindowWidth, kWindowHeight, nullptr, nullptr, wc.hInstance, nullptr);
+        WS_POPUP, x, y, kWindowWidth, kWindowHeight, nullptr, nullptr, wc.hInstance, nullptr);
 
     if (!hwnd)
     {
