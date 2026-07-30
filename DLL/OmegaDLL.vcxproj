@@ -103,7 +103,6 @@
     <ClInclude Include="src\game\classes\Minecraft.h" />
     <ClInclude Include="src\game\classes\Player.h" />
     <ClInclude Include="src\core\RenderHook.h" />
-    <ClInclude Include="src\core\hookimgui.h" />
     <ClInclude Include="src\features\render\Watermark.h" />
     <ClInclude Include="src\game\jni\JniUtil.h" />
     <ClInclude Include="..\Shared\Shared.h" />
@@ -111,7 +110,6 @@
   <ItemGroup>
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\core\RenderHook.cpp" />
-    <ClCompile Include="src\core\hookimgui.cpp" />
     <ClCompile Include="src\features\render\Watermark.cpp" />
     <ClCompile Include="src\game\jni\JniUtil.cpp" />
     <ClCompile Include="..\external\imgui\imgui.cpp" />

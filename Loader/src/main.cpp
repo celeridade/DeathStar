@@ -141,7 +141,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
     // Tracks the enabled flag we last wrote, so a change coming back from the
     // dll (the in-game keybind toggle) can be told apart from our own writes.
     bool lastEnabled = config.settings.autoClickerEnabled;
-    bool lastHideClan = config.settings.hideClanEnabled;
 
     while (!done)
     {
@@ -163,12 +162,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
         shared::SharedConfig* sc = sharedMemory.Get();
         if (sc->autoClickerEnabled != lastEnabled)
             config.settings.autoClickerEnabled = sc->autoClickerEnabled;
-        if (sc->hideClanEnabled != lastHideClan)
-            config.settings.hideClanEnabled = sc->hideClanEnabled;
 
         config.ApplyTo(*sc);
         lastEnabled = sc->autoClickerEnabled;
-        lastHideClan = sc->hideClanEnabled;
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();

@@ -42,14 +42,7 @@ namespace omega::shared {
         bool watermarkTime = true;
         float watermarkColor[3] = { 222 / 255.f, 51 / 255.f, 61 / 255.f };
 
-        // HideClan settings
-    bool hideClanEnabled = false;
-    int hideClanKeybind = 0;       // VK toggle; 0 = unbound
-    bool hideClanShowAllies = false;
-    int hideClanMode = 0;           // 0=Blatant, 1=Automatic, 2=Semi Auto, 3=Manual
-    int hideClanShowCount = 5;
-
-    // Written by the DLL, read by the Loader.
+        // Written by the DLL, read by the Loader.
     bool dllAttached = false;
     // Written by the Loader, read by the DLL: asks it to unload itself.
     bool shutdownRequested = false;

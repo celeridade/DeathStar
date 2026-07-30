@@ -9,7 +9,6 @@
 #include "features/render/Watermark.h"
 #include "game/mapping/Mapper.h"
 #include "core/RenderHook.h"
-#include "core/hookimgui.h"
 
 #include "MinHook.h"
 
@@ -19,7 +18,6 @@ using omega::dll::features::render::Watermark;
 static AutoClicker* g_autoClicker = nullptr;
 static NoHitDelay* g_noHitDelay = nullptr;
 static NoJumpDelay* g_noJumpDelay = nullptr;
-static omega::dll::core::HideClan* g_hideClan = nullptr;
 static omega::shared::SharedConfig* g_sharedConfig = nullptr;
 static HANDLE g_hMapFile = nullptr;
 static HMODULE g_hModule = nullptr;
@@ -52,14 +50,6 @@ static void SyncSettings() {
 
     if (g_noJumpDelay)
         g_noJumpDelay->SetEnabled(g_sharedConfig->noJumpDelayEnabled);
-
-    if (g_hideClan) {
-        g_hideClan->SetEnabled(g_sharedConfig->hideClanEnabled);
-        g_hideClan->SetKeybind(g_sharedConfig->hideClanKeybind);
-        g_hideClan->SetShowAllies(g_sharedConfig->hideClanShowAllies);
-        g_hideClan->SetMode(g_sharedConfig->hideClanMode);
-        g_hideClan->SetShowCount(g_sharedConfig->hideClanShowCount);
-    }
 }
 
 // Everything that touches the game runs here, on the thread that attached to
@@ -82,9 +72,6 @@ static void TickGame(JNIEnv* env) {
 
     if (g_noJumpDelay)
         g_noJumpDelay->Tick(env);
-
-    if (g_hideClan)
-        g_hideClan->Tick(env);
 
     static auto lastName = std::chrono::steady_clock::now() - std::chrono::seconds(5);
     const auto now = std::chrono::steady_clock::now();
@@ -127,15 +114,11 @@ static void MainThread() {
     g_autoClicker = new AutoClicker();
     g_noHitDelay = new NoHitDelay();
     g_noJumpDelay = new NoJumpDelay();
-    g_hideClan = new omega::dll::core::HideClan();
 
     Watermark::SetConfig(g_sharedConfig);
 
     SyncSettings();
     g_autoClicker->Start();
-
-    // HideClan toggle via keybind syncs back to shared memory
-    static bool lastHideClan = false;
 
     // Only the render hook needs MinHook now; it draws the watermark on the
     // game's own frame. The features run on this thread, no hook required.
@@ -153,12 +136,6 @@ static void MainThread() {
     while (g_running) {
         if (g_sharedConfig->shutdownRequested)
             break;
-
-        // Keybind toggle for hideclan flips the shared flag
-        if (g_hideClan && g_hideClan->ConsumeToggle()) {
-            g_sharedConfig->hideClanEnabled = !g_sharedConfig->hideClanEnabled;
-            lastHideClan = g_sharedConfig->hideClanEnabled;
-        }
 
         auto now = std::chrono::steady_clock::now();
 
@@ -191,12 +168,6 @@ static void MainThread() {
     g_noHitDelay = nullptr;
     delete g_noJumpDelay;
     g_noJumpDelay = nullptr;
-
-    if (g_hideClan) {
-        g_hideClan->Shutdown(g_Game->GetCurrentEnv());
-        delete g_hideClan;
-        g_hideClan = nullptr;
-    }
 
     // Wipe the strings we brought in before the module leaves, so nothing of
     // ours is left sitting in the game's memory.

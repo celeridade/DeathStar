@@ -623,11 +623,6 @@ static void ApplyCheatBreakerMappings()
     s_FieldMappings["objectMouseOver"] = "IlIIIIIIllllIIllIlIIIllll";
     s_FieldMappings["typeOfHit"] = "IllllIllllllIIIlIlIIlIlIl";
     s_FieldMappings["playerController"] = "IllIIIIIIIIlIllIIIlllIIlI";
-    // HideClan needs the world's player list plus the flags it flips to hide one.
-    s_FieldMappings["playerEntities"] = "IlIIIIlIlIllllIIlIllIlIlI";
-    s_FieldMappings["isInvisible"] = "IllIIIIIIIIlIllIIIlllIIlI";
-    s_FieldMappings["width"] = "IllIlllllIlIllIlllIllllll";
-    s_FieldMappings["height"] = "IllIllIllIIlIlIlIlllIIllI";
     s_FieldMappings["playerEntities"] = "IlIIIIlIlIllllIIlIllIlIlI";
     s_FieldMappings["isInvisible"] = "IllIIIIIIIIlIllIIIlllIIlI";
     s_FieldMappings["width"] = "IllIlllllIlIllIlllIllllll";

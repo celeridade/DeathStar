@@ -15,12 +15,6 @@ namespace omega::loader {
 
         bool noHitDelayEnabled = false;
         bool noJumpDelayEnabled = false;
-
-        bool hideClanEnabled = false;
-        int hideClanKeybind = 0;
-        bool hideClanShowAllies = false;
-        int hideClanMode = 0;
-        int hideClanShowCount = 5;
     };
 
     struct UiSettings {

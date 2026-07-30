@@ -67,17 +67,6 @@ namespace omega::loader
             if (j["noJumpDelayEnabled"].is_boolean())
                 settings.noJumpDelayEnabled = j["noJumpDelayEnabled"].get<bool>();
 
-            if (j["hideClanEnabled"].is_boolean())
-                settings.hideClanEnabled = j["hideClanEnabled"].get<bool>();
-            if (j["hideClanKeybind"].is_number())
-                settings.hideClanKeybind = j["hideClanKeybind"].get<int>();
-            if (j["hideClanShowAllies"].is_boolean())
-                settings.hideClanShowAllies = j["hideClanShowAllies"].get<bool>();
-            if (j["hideClanMode"].is_number())
-                settings.hideClanMode = j["hideClanMode"].get<int>();
-            if (j["hideClanShowCount"].is_number())
-                settings.hideClanShowCount = j["hideClanShowCount"].get<int>();
-
             if (j["accentColor"].is_array() && j["accentColor"].size() == 4)
             {
                 for (int i = 0; i < 4; i++)
@@ -121,11 +110,6 @@ namespace omega::loader
         j["autoClickerKeybind"] = settings.autoClickerKeybind;
         j["noHitDelayEnabled"] = settings.noHitDelayEnabled;
         j["noJumpDelayEnabled"] = settings.noJumpDelayEnabled;
-        j["hideClanEnabled"] = settings.hideClanEnabled;
-        j["hideClanKeybind"] = settings.hideClanKeybind;
-        j["hideClanShowAllies"] = settings.hideClanShowAllies;
-        j["hideClanMode"] = settings.hideClanMode;
-        j["hideClanShowCount"] = settings.hideClanShowCount;
         j["accentColor"] = { ui.accent[0], ui.accent[1], ui.accent[2], ui.accent[3] };
         j["watermarkEnabled"] = watermark.enabled;
         j["watermarkCorner"] = watermark.corner;
@@ -162,12 +146,6 @@ namespace omega::loader
         target.autoClickerKeybind = settings.autoClickerKeybind;
         target.noHitDelayEnabled = settings.noHitDelayEnabled;
         target.noJumpDelayEnabled = settings.noJumpDelayEnabled;
-
-        target.hideClanEnabled = settings.hideClanEnabled;
-        target.hideClanKeybind = settings.hideClanKeybind;
-        target.hideClanShowAllies = settings.hideClanShowAllies;
-        target.hideClanMode = settings.hideClanMode;
-        target.hideClanShowCount = settings.hideClanShowCount;
 
         target.watermarkEnabled = watermark.enabled;
         target.watermarkCorner = watermark.corner;
