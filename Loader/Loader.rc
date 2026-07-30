@@ -1,0 +1,4 @@
+#include "resource.h"
+
+// DeathStar.dll.bin is a copy of the built dll, produced by the pre-build event.
+IDR_OMEGADLL RCDATA "DeathStar.dll.bin"

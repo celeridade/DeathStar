@@ -11,6 +11,9 @@ Release/
 x64/
 x86/
 
+# Embedded dll copy produced by the loader pre-build event
+Loader/DeathStar.dll.bin
+
 # Intermediate files
 *.obj
 *.lib

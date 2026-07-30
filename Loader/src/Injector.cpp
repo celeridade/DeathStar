@@ -1,4 +1,5 @@
 #include "Injector.h"
+#include "../resource.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cstring>
@@ -32,6 +33,58 @@ namespace omega::loader
         std::string LastErrorText(const char* what)
         {
             return std::string(what) + " (error " + std::to_string(GetLastError()) + ")";
+        }
+
+        // The dll is baked into the exe as a resource. Write it out to a temp
+        // folder so a single .exe carries everything; LoadLibrary needs a path.
+        // The file keeps the name DeathStar.dll so the module shows up under that
+        // name for the injected/eject checks.
+        bool ExtractEmbeddedDll(std::wstring& outPath)
+        {
+            HMODULE self = GetModuleHandleW(nullptr);
+            HRSRC info = FindResourceW(self, MAKEINTRESOURCEW(IDR_OMEGADLL), RT_RCDATA);
+            if (!info)
+                return false;
+
+            HGLOBAL handle = LoadResource(self, info);
+            const DWORD size = SizeofResource(self, info);
+            void* data = handle ? LockResource(handle) : nullptr;
+            if (!data || size == 0)
+                return false;
+
+            wchar_t temp[MAX_PATH]{};
+            if (GetTempPathW(MAX_PATH, temp) == 0)
+                return false;
+
+            std::wstring dir = std::wstring(temp) + L"DeathStar";
+            CreateDirectoryW(dir.c_str(), nullptr);
+
+            const std::wstring path = dir + L"\\" + shared::DLL_NAME;
+
+            HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr,
+                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+            if (file == INVALID_HANDLE_VALUE)
+            {
+                // A game already loaded it, so the file is locked. That copy is
+                // ours, so just reuse it.
+                if (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                    outPath = path;
+                    return true;
+                }
+                return false;
+            }
+
+            DWORD written = 0;
+            const BOOL ok = WriteFile(file, data, size, &written, nullptr);
+            CloseHandle(file);
+
+            if (!ok || written != size)
+                return false;
+
+            outPath = path;
+            return true;
         }
 
         struct TitleSearch
@@ -91,6 +144,17 @@ namespace omega::loader
             return;
         }
 
+        // Prefer the dll embedded in the exe (single-file distribution).
+        std::wstring embedded;
+        if (ExtractEmbeddedDll(embedded))
+        {
+            m_dllPath = embedded;
+            m_dllPathUtf8 = ToUtf8(m_dllPath);
+            m_dllFound = true;
+            return;
+        }
+
+        // Fallback: a DeathStar.dll sitting next to the exe (dev builds).
         std::wstring directory(path);
         const size_t slash = directory.find_last_of(L'\\');
         if (slash != std::wstring::npos)
