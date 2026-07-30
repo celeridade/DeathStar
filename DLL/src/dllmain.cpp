@@ -40,6 +40,7 @@ static void SyncSettings() {
         g_autoClicker->SetOnlyWhileHolding(g_sharedConfig->autoClickerOnlyWhileHolding);
         g_autoClicker->SetDontClickInMenus(g_sharedConfig->autoClickerDontClickInMenus);
         g_autoClicker->SetBreakBlocks(g_sharedConfig->autoClickerBreakBlocks);
+        g_autoClicker->SetBurst(g_sharedConfig->autoClickerBurst);
         g_autoClicker->SetKeybind(g_sharedConfig->autoClickerKeybind);
 
         Watermark::SetClickCount(g_autoClicker->GetClickCount());

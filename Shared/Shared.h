@@ -26,6 +26,7 @@ namespace omega::shared {
         bool autoClickerOnlyWhileHolding = true;
         bool autoClickerDontClickInMenus = true;
         bool autoClickerBreakBlocks = false;
+        bool autoClickerBurst = false;   // pin straight to max CPS, no random pacing
         // Virtual-key code that toggles the clicker on/off. 0 = unbound (always
         // on). 0x05/0x06 are the side mouse buttons (M4/M5). Hitting is always M1.
         int autoClickerKeybind = 0;

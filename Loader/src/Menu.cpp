@@ -258,6 +258,7 @@ namespace omega::loader
                 settings.autoClickerMinCps = settings.autoClickerMaxCps;
 
             edited::Checkbox("Jitter", "Adds small mouse movements", &settings.autoClickerJitter);
+            edited::Checkbox("Burst", "Reaches the max CPS instantly, no ramp", &settings.autoClickerBurst);
 
             edited::Keybind("Keybind", "Toggles the clicker on/off, side buttons work", &settings.autoClickerKeybind);
         }

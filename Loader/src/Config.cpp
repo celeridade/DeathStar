@@ -60,6 +60,8 @@ namespace omega::loader
                 settings.autoClickerDontClickInMenus = j["autoClickerDontClickInMenus"].get<bool>();
             if (j["autoClickerBreakBlocks"].is_boolean())
                 settings.autoClickerBreakBlocks = j["autoClickerBreakBlocks"].get<bool>();
+            if (j["autoClickerBurst"].is_boolean())
+                settings.autoClickerBurst = j["autoClickerBurst"].get<bool>();
             if (j["autoClickerKeybind"].is_number())
                 settings.autoClickerKeybind = j["autoClickerKeybind"].get<int>();
             if (j["noHitDelayEnabled"].is_boolean())
@@ -107,6 +109,7 @@ namespace omega::loader
         j["autoClickerOnlyWhileHolding"] = settings.autoClickerOnlyWhileHolding;
         j["autoClickerDontClickInMenus"] = settings.autoClickerDontClickInMenus;
         j["autoClickerBreakBlocks"] = settings.autoClickerBreakBlocks;
+        j["autoClickerBurst"] = settings.autoClickerBurst;
         j["autoClickerKeybind"] = settings.autoClickerKeybind;
         j["noHitDelayEnabled"] = settings.noHitDelayEnabled;
         j["noJumpDelayEnabled"] = settings.noJumpDelayEnabled;
@@ -143,6 +146,7 @@ namespace omega::loader
         target.autoClickerOnlyWhileHolding = settings.autoClickerOnlyWhileHolding;
         target.autoClickerDontClickInMenus = settings.autoClickerDontClickInMenus;
         target.autoClickerBreakBlocks = settings.autoClickerBreakBlocks;
+        target.autoClickerBurst = settings.autoClickerBurst;
         target.autoClickerKeybind = settings.autoClickerKeybind;
         target.noHitDelayEnabled = settings.noHitDelayEnabled;
         target.noJumpDelayEnabled = settings.noJumpDelayEnabled;

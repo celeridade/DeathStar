@@ -28,6 +28,8 @@ namespace omega::dll::features {
         bool GetDontClickInMenus() const;
         void SetBreakBlocks(bool enabled);
         bool GetBreakBlocks() const;
+        void SetBurst(bool enabled) { m_burst.store(enabled); }
+        bool GetBurst() const { return m_burst.load(); }
         void SetKeybind(int vk) { m_keybind.store(vk); }
         int GetKeybind() const { return m_keybind.load(); }
 
@@ -57,6 +59,7 @@ namespace omega::dll::features {
         std::atomic<bool> m_onlyWhileHolding{ true };
         std::atomic<bool> m_dontClickInMenus{ true };
         std::atomic<bool> m_breakBlocks{ false };
+        std::atomic<bool> m_burst{ false };         // pin to max CPS, no random pacing
         std::atomic<int> m_keybind{ 0 };            // toggle key; 0 = unbound
         std::atomic<bool> m_togglePending{ false }; // set on a keybind press
 

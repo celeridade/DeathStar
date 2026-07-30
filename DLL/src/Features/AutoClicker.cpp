@@ -235,13 +235,25 @@ namespace omega::dll::features {
             if (minCps > maxCps)
                 std::swap(minCps, maxCps);
 
-            int minDelay = 1000 / maxCps;
-            int maxDelay = 1000 / minCps;
-            if (minDelay < 1) minDelay = 1;
-            if (maxDelay < minDelay) maxDelay = minDelay;
+            int delay;
+            if (m_burst.load())
+            {
+                // Burst: pin straight to the top CPS, no random pacing, so it
+                // reaches the chosen speed immediately instead of averaging out
+                // somewhere between min and max.
+                delay = 1000 / maxCps;
+                if (delay < 1) delay = 1;
+            }
+            else
+            {
+                int minDelay = 1000 / maxCps;
+                int maxDelay = 1000 / minCps;
+                if (minDelay < 1) minDelay = 1;
+                if (maxDelay < minDelay) maxDelay = minDelay;
 
-            std::uniform_int_distribution<> delayDist(minDelay, maxDelay);
-            int delay = delayDist(gen);
+                std::uniform_int_distribution<> delayDist(minDelay, maxDelay);
+                delay = delayDist(gen);
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 
             if (m_jitter.load())

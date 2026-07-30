@@ -11,6 +11,7 @@ namespace omega::loader {
         bool autoClickerOnlyWhileHolding = true;
         bool autoClickerDontClickInMenus = true;
         bool autoClickerBreakBlocks = false;
+        bool autoClickerBurst = false;   // pin straight to max CPS, no random pacing
         int autoClickerKeybind = 0;   // VK toggle; 0 = unbound (always on), 0x05/0x06 = side buttons
 
         bool noHitDelayEnabled = false;
