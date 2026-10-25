@@ -6,6 +6,7 @@
 #include "game/jni/GameInstance.h"
 #include "Features/AutoClicker.h"
 #include "Features/AltManager.h"
+#include "Features/BlockHit.h"
 #include "Features/NoHitDelay.h"
 #include "Features/NoJumpDelay.h"
 #include "features/render/Watermark.h"
@@ -19,6 +20,7 @@ using omega::dll::features::render::Watermark;
 
 static AutoClicker* g_autoClicker = nullptr;
 static AltManager* g_altManager = nullptr;
+static BlockHit* g_blockHit = nullptr;
 static NoHitDelay* g_noHitDelay = nullptr;
 static NoJumpDelay* g_noJumpDelay = nullptr;
 static omega::shared::SharedConfig* g_sharedConfig = nullptr;
@@ -55,6 +57,13 @@ static void SyncSettings() {
 
     if (g_noJumpDelay)
         g_noJumpDelay->SetEnabled(g_sharedConfig->noJumpDelayEnabled);
+
+    if (g_blockHit)
+    {
+        g_blockHit->SetEnabled(g_sharedConfig->blockHitEnabled);
+        g_blockHit->SetMode(g_sharedConfig->blockHitMode);
+        g_blockHit->SetDelayMs(g_sharedConfig->blockHitDelayMs);
+    }
 }
 
 // Everything that touches the game runs here, on the thread that attached to
@@ -71,6 +80,9 @@ static void TickGame(JNIEnv* env) {
 
     if (g_autoClicker)
         g_autoClicker->UpdateFromGame(env);
+
+    if (g_blockHit)
+        g_blockHit->UpdateFromGame(env);
 
     if (g_sharedConfig && g_altManager && g_sharedConfig->altManagerRequest != g_sharedConfig->altManagerAcknowledged)
     {
@@ -128,6 +140,7 @@ static void MainThread() {
 
     g_autoClicker = new AutoClicker();
     g_altManager = new AltManager();
+    g_blockHit = new BlockHit();
     g_noHitDelay = new NoHitDelay();
     g_noJumpDelay = new NoJumpDelay();
 
@@ -135,6 +148,7 @@ static void MainThread() {
 
     SyncSettings();
     g_autoClicker->Start();
+    g_blockHit->Start();
 
     // Only the render hook needs MinHook now; it draws the watermark on the
     // game's own frame. The features run on this thread, no hook required.
@@ -177,6 +191,7 @@ static void MainThread() {
     }
 
     g_autoClicker->Stop();
+    g_blockHit->Stop();
 
     JNIEnv* env = g_Game->GetCurrentEnv();
     if (env && !g_altManager->Reset(env))
@@ -186,6 +201,8 @@ static void MainThread() {
     g_autoClicker = nullptr;
     delete g_altManager;
     g_altManager = nullptr;
+    delete g_blockHit;
+    g_blockHit = nullptr;
     delete g_noHitDelay;
     g_noHitDelay = nullptr;
     delete g_noJumpDelay;

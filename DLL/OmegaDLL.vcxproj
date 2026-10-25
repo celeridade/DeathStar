@@ -93,6 +93,7 @@
   <ItemGroup>
     <ClInclude Include="src\Features\AutoClicker.h" />
     <ClInclude Include="src\Features\AltManager.h" />
+    <ClInclude Include="src\Features\BlockHit.h" />
     <ClInclude Include="src\Features\NoHitDelay.h" />
     <ClInclude Include="src\Features\NoJumpDelay.h" />
     <ClInclude Include="src\Utils.h" />
@@ -125,6 +126,7 @@
     <ClCompile Include="..\external\minhook\hde\hde64.c" />
     <ClCompile Include="src\Features\AutoClicker.cpp" />
     <ClCompile Include="src\Features\AltManager.cpp" />
+    <ClCompile Include="src\Features\BlockHit.cpp" />
     <ClCompile Include="src\Features\NoHitDelay.cpp" />
     <ClCompile Include="src\Features\NoJumpDelay.cpp" />
     <ClCompile Include="src\Utils.cpp" />

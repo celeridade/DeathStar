@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include <imgui_edited.hpp>
 
+#include <algorithm>
 #include <cstdarg>
 #include <regex>
 #include <string>
@@ -282,6 +283,17 @@ namespace omega::loader
             edited::Checkbox("Only While Holding", "Only clicks when holding LMB", &settings.autoClickerOnlyWhileHolding);
             edited::Checkbox("Don't Click In Menus", "Prevents clicking in GUI screens", &settings.autoClickerDontClickInMenus);
             edited::Checkbox("Break Blocks", "Holds to break the block you look at", &settings.autoClickerBreakBlocks);
+            edited::Checkbox("BlockHit", "BlockHit modes and timing", &settings.blockHitEnabled);
+            if (settings.blockHitEnabled)
+            {
+                static const char* const blockHitModes[] = { "Manual", "Automatic" };
+                settings.blockHitMode = std::clamp(settings.blockHitMode, 0, 1);
+                settings.blockHitDelayMs = std::clamp(settings.blockHitDelayMs, 0, 150);
+                edited::Combo("BlockHit Mode", "Both modes require holding right click; Automatic uses the configured interval", &settings.blockHitMode,
+                    blockHitModes, IM_ARRAYSIZE(blockHitModes), 2);
+                if (settings.blockHitMode == 1)
+                    edited::SliderInt("HitBlock Delay", "Automatic block interval in milliseconds", &settings.blockHitDelayMs, 0, 150, "%d ms");
+            }
 
             Header("Delays");
 

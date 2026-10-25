@@ -31,6 +31,9 @@ namespace omega::shared {
         // Virtual-key code that toggles the clicker on/off. 0 = unbound (always
         // on). 0x05/0x06 are the side mouse buttons (M4/M5). Hitting is always M1.
         int autoClickerKeybind = 0;
+        bool blockHitEnabled = false;
+        int blockHitMode = 0; // 0 = manual (hold right mouse), 1 = automatic (while attacking)
+        int blockHitDelayMs = 75;
         char altManagerUsername[17]{};
         std::uint32_t altManagerRequest = 0;
         std::uint32_t altManagerAcknowledged = 0;

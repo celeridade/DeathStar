@@ -1,5 +1,6 @@
 #include "Config.h"
 #include <windows.h>
+#include <algorithm>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -64,6 +65,12 @@ namespace omega::loader
                 settings.autoClickerBurst = j["autoClickerBurst"].get<bool>();
             if (j["autoClickerKeybind"].is_number())
                 settings.autoClickerKeybind = j["autoClickerKeybind"].get<int>();
+            if (j["blockHitEnabled"].is_boolean())
+                settings.blockHitEnabled = j["blockHitEnabled"].get<bool>();
+            if (j["blockHitMode"].is_number_integer())
+                settings.blockHitMode = j["blockHitMode"].get<int>() == 1 ? 1 : 0;
+            if (j["blockHitDelayMs"].is_number_integer())
+                settings.blockHitDelayMs = std::clamp(j["blockHitDelayMs"].get<int>(), 0, 150);
             if (j["noHitDelayEnabled"].is_boolean())
                 settings.noHitDelayEnabled = j["noHitDelayEnabled"].get<bool>();
             if (j["noJumpDelayEnabled"].is_boolean())
@@ -111,6 +118,9 @@ namespace omega::loader
         j["autoClickerBreakBlocks"] = settings.autoClickerBreakBlocks;
         j["autoClickerBurst"] = settings.autoClickerBurst;
         j["autoClickerKeybind"] = settings.autoClickerKeybind;
+        j["blockHitEnabled"] = settings.blockHitEnabled;
+        j["blockHitMode"] = settings.blockHitMode;
+        j["blockHitDelayMs"] = settings.blockHitDelayMs;
         j["noHitDelayEnabled"] = settings.noHitDelayEnabled;
         j["noJumpDelayEnabled"] = settings.noJumpDelayEnabled;
         j["accentColor"] = { ui.accent[0], ui.accent[1], ui.accent[2], ui.accent[3] };
@@ -148,6 +158,9 @@ namespace omega::loader
         target.autoClickerBreakBlocks = settings.autoClickerBreakBlocks;
         target.autoClickerBurst = settings.autoClickerBurst;
         target.autoClickerKeybind = settings.autoClickerKeybind;
+        target.blockHitEnabled = settings.blockHitEnabled;
+        target.blockHitMode = settings.blockHitMode;
+        target.blockHitDelayMs = settings.blockHitDelayMs;
         target.noHitDelayEnabled = settings.noHitDelayEnabled;
         target.noJumpDelayEnabled = settings.noJumpDelayEnabled;
 
