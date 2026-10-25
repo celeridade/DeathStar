@@ -7,7 +7,42 @@
 #include <chrono>
 #include <thread>
 
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+
 namespace omega::dll::features {
+
+    static void SleepUntilSteadyClock(HANDLE timer, std::chrono::steady_clock::time_point deadline)
+    {
+        if (!timer)
+        {
+            std::this_thread::sleep_until(deadline);
+            return;
+        }
+
+        while (true)
+        {
+            const auto remaining = deadline - std::chrono::steady_clock::now();
+            if (remaining <= std::chrono::steady_clock::duration::zero())
+                return;
+
+            const auto remainingNs = std::chrono::duration_cast<std::chrono::nanoseconds>(remaining).count();
+            LARGE_INTEGER dueTime{};
+            dueTime.QuadPart = -static_cast<LONGLONG>((remainingNs + 99) / 100);
+            if (!SetWaitableTimer(timer, &dueTime, 0, nullptr, nullptr, FALSE))
+            {
+                std::this_thread::sleep_until(deadline);
+                return;
+            }
+
+            if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0)
+            {
+                std::this_thread::sleep_until(deadline);
+                return;
+            }
+        }
+    }
 
     AutoClicker::AutoClicker() = default;
 
@@ -149,10 +184,14 @@ namespace omega::dll::features {
     {
         std::random_device rd;
         std::mt19937 gen(rd());
+        HANDLE highResolutionTimer = CreateWaitableTimerExW(nullptr, nullptr,
+            CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 
         bool previousLmb = false;
         bool previousBind = false;
         bool holdingMine = false;   // LMB held down (not spammed) to break a block
+        int fixedRateCps = 0;
+        auto nextFixedClick = std::chrono::steady_clock::time_point{};
         HWND mineWindow = nullptr;
 
         auto releaseMine = [&]() {
@@ -195,6 +234,7 @@ namespace omega::dll::features {
             if (!gate)
             {
                 releaseMine();
+                fixedRateCps = 0;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 continue;
             }
@@ -211,12 +251,14 @@ namespace omega::dll::features {
                         holdingMine = true;
                         mineWindow = minecraftWindow;
                     }
+                    fixedRateCps = 0;
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     continue;
                 }
 
                 // Break Blocks off: leave blocks alone so builds survive.
                 releaseMine();
+                fixedRateCps = 0;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 continue;
             }
@@ -224,25 +266,42 @@ namespace omega::dll::features {
             // Back to normal combat clicking; drop any mining hold first.
             releaseMine();
 
+            int minCps = m_minCps.load();
+            int maxCps = m_maxCps.load();
+            if (minCps > maxCps)
+                std::swap(minCps, maxCps);
+
+            const bool burst = m_burst.load();
+            const int targetCps = burst ? maxCps : minCps;
+            const bool fixedRate = burst || minCps == maxCps;
+            if (fixedRate)
+            {
+                if (fixedRateCps != targetCps)
+                {
+                    fixedRateCps = targetCps;
+                    nextFixedClick = std::chrono::steady_clock::now();
+                }
+            }
+            else
+            {
+                fixedRateCps = 0;
+            }
+
             PostMessageA(minecraftWindow, WM_LBUTTONDOWN, MK_LBUTTON, 0);
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             PostMessageA(minecraftWindow, WM_LBUTTONUP, 0, 0);
 
             m_clickCount.fetch_add(1);
 
-            int minCps = m_minCps.load();
-            int maxCps = m_maxCps.load();
-            if (minCps > maxCps)
-                std::swap(minCps, maxCps);
-
-            int delay;
-            if (m_burst.load())
+            if (fixedRate)
             {
-                // Burst: pin straight to the top CPS, no random pacing, so it
-                // reaches the chosen speed immediately instead of averaging out
-                // somewhere between min and max.
-                delay = 1000 / maxCps;
-                if (delay < 1) delay = 1;
+                const auto interval = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                    std::chrono::duration<double>(1.0 / targetCps));
+                nextFixedClick += interval;
+                const auto now = std::chrono::steady_clock::now();
+                if (nextFixedClick <= now)
+                    nextFixedClick = now + interval;
+                SleepUntilSteadyClock(highResolutionTimer, nextFixedClick);
             }
             else
             {
@@ -252,9 +311,8 @@ namespace omega::dll::features {
                 if (maxDelay < minDelay) maxDelay = minDelay;
 
                 std::uniform_int_distribution<> delayDist(minDelay, maxDelay);
-                delay = delayDist(gen);
+                std::this_thread::sleep_for(std::chrono::milliseconds(delayDist(gen)));
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 
             if (m_jitter.load())
             {
@@ -274,6 +332,8 @@ namespace omega::dll::features {
         }
 
         releaseMine();
+        if (highResolutionTimer)
+            CloseHandle(highResolutionTimer);
     }
 
 }
