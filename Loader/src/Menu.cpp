@@ -6,6 +6,7 @@
 #include <imgui_edited.hpp>
 
 #include <cstdarg>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -13,14 +14,15 @@ namespace omega::loader
 {
     namespace
     {
-        constexpr int TAB_COUNT = 3;
+        constexpr int TAB_COUNT = 4;
 
-        const char* const TAB_ICONS[TAB_COUNT] = { "c", "o", "e" };
-        const char* const TAB_LABELS[TAB_COUNT] = { "Combat", "Watermark", "Settings" };
+        const char* const TAB_ICONS[TAB_COUNT] = { "c", "o", "a", "e" };
+        const char* const TAB_LABELS[TAB_COUNT] = { "Combat", "Watermark", "Alt Manager", "Settings" };
         // Kept short on purpose, the tab clips anything wider than ~130px.
         const char* const TAB_DESCRIPTIONS[TAB_COUNT] = {
             "Clicks and delays",
             "In-game overlay",
+            "Nick and session",
             "Config and colors",
         };
 
@@ -220,7 +222,8 @@ namespace omega::loader
                 {
                 case 0: DrawCombatTab(); break;
                 case 1: DrawWatermarkTab(); break;
-                case 2: DrawSettingsTab(); break;
+                case 2: DrawAltManagerTab(); break;
+                case 3: DrawSettingsTab(); break;
                 }
             }
             ImGui::PopStyleVar();
@@ -364,6 +367,73 @@ namespace omega::loader
             Header("About");
 
             Line(c::elements::text_hov, "Made by Lazer for cvT to use.");
+        }
+        edited::EndChild();
+    }
+
+    void Menu::DrawAltManagerTab()
+    {
+        const ImVec2 size(c::background::size.x - SIDEBAR_WIDTH, c::background::size.y);
+        constexpr float FORM_WIDTH = 460.f;
+
+        edited::BeginChild("##Container0", size, NULL);
+        {
+            const float formX = (ImGui::GetContentRegionMax().x - FORM_WIDTH) * 0.5f;
+            ImGui::SetCursorPos(ImVec2(formX, 100.f));
+            ImGui::PushFont(font::lexend_regular);
+            ImGui::TextColored(ImColor(ImGui::GetColorU32(c::elements::text)), "Offline username");
+            ImGui::PopFont();
+            ImGui::SetCursorPosX(formX);
+            ImGui::SetNextItemWidth(FORM_WIDTH);
+            ImGui::InputTextWithHint("##AltUsername", "Minecraft username", m_altUsername, sizeof(m_altUsername));
+            ImGui::SetCursorPosX(formX);
+            ImGui::PushTextWrapPos(formX + FORM_WIDTH);
+            ImGui::TextWrapped("Changes the local Minecraft session name. It does not sign in to an account or change a server-authenticated identity.");
+            ImGui::PopTextWrapPos();
+            ImGui::SetCursorPosX(formX);
+            if (edited::Button("Apply Nick", ImVec2(FORM_WIDTH, 40.f), true))
+            {
+                if (!std::regex_match(m_altUsername, std::regex("[A-Za-z0-9_]{3,16}")))
+                {
+                    SetStatus("Use 3-16 letters, numbers, or underscores.", true);
+                }
+                else if (!m_shared)
+                {
+                    SetStatus("Game is not connected.", true);
+                }
+                else
+                {
+                    strncpy_s(m_shared->altManagerUsername, m_altUsername, _TRUNCATE);
+                    m_altRequest = m_shared->altManagerRequest + 1;
+                    if (m_altRequest == 0)
+                        m_altRequest = 1;
+                    m_shared->altManagerRequest = m_altRequest;
+                    SetStatus("Applying username...", false);
+                }
+            }
+            ImGui::SetCursorPosX(formX);
+            if (edited::Button("Restore Original Session", ImVec2(FORM_WIDTH, 40.f)))
+            {
+                if (!m_shared)
+                {
+                    SetStatus("Game is not connected.", true);
+                }
+                else
+                {
+                    m_shared->altManagerUsername[0] = '\0';
+                    m_altRequest = m_shared->altManagerRequest + 1;
+                    if (m_altRequest == 0)
+                        m_altRequest = 1;
+                    m_shared->altManagerRequest = m_altRequest;
+                    SetStatus("Restoring original session...", false);
+                }
+            }
+            if (m_shared && m_altRequest != 0 && m_shared->altManagerAcknowledged == m_altRequest)
+            {
+                SetStatus(m_shared->altManagerResult == 1 ? "Session updated." : "Could not update the session.",
+                    m_shared->altManagerResult != 1);
+                m_altRequest = 0;
+            }
         }
         edited::EndChild();
     }

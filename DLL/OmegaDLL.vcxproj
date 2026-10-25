@@ -62,7 +62,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;F:\devtools\jdk-17.0.19+10\include;F:\devtools\jdk-17.0.19+10\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -79,7 +79,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;F:\devtools\jdk-17.0.19+10\include;F:\devtools\jdk-17.0.19+10\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Shared;..\external;..\external\imgui;..\external\imgui\backends;..\external\minhook;$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,6 +92,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Features\AutoClicker.h" />
+    <ClInclude Include="src\Features\AltManager.h" />
     <ClInclude Include="src\Features\NoHitDelay.h" />
     <ClInclude Include="src\Features\NoJumpDelay.h" />
     <ClInclude Include="src\Utils.h" />
@@ -123,6 +124,7 @@
     <ClCompile Include="..\external\minhook\hde\hde32.c" />
     <ClCompile Include="..\external\minhook\hde\hde64.c" />
     <ClCompile Include="src\Features\AutoClicker.cpp" />
+    <ClCompile Include="src\Features\AltManager.cpp" />
     <ClCompile Include="src\Features\NoHitDelay.cpp" />
     <ClCompile Include="src\Features\NoJumpDelay.cpp" />
     <ClCompile Include="src\Utils.cpp" />

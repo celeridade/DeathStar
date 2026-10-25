@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <cstdint>
 
 #ifdef OMC_BUILD_DLL
 #define OMC_DLL __declspec(dllexport)
@@ -30,6 +31,10 @@ namespace omega::shared {
         // Virtual-key code that toggles the clicker on/off. 0 = unbound (always
         // on). 0x05/0x06 are the side mouse buttons (M4/M5). Hitting is always M1.
         int autoClickerKeybind = 0;
+        char altManagerUsername[17]{};
+        std::uint32_t altManagerRequest = 0;
+        std::uint32_t altManagerAcknowledged = 0;
+        int altManagerResult = 0;
         bool noHitDelayEnabled = false;
         bool noJumpDelayEnabled = false;
 

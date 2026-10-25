@@ -73,6 +73,24 @@ namespace
             env->ExceptionClear();
     }
 
+    bool SetObjectField(JNIEnv* env, jobject owner, const char* mapping, jobject value)
+    {
+        if (!env || !owner || !value)
+            return false;
+
+        jfieldID field = CachedField(env, owner, mapping, jniutil::FieldKind::Object);
+        if (!field)
+            return false;
+
+        env->SetObjectField(owner, field, value);
+        if (env->ExceptionCheck())
+        {
+            env->ExceptionClear();
+            return false;
+        }
+        return true;
+    }
+
     std::string ReadString(JNIEnv* env, jstring value)
     {
         if (!value)
@@ -217,6 +235,25 @@ jobject Minecraft::GetObjectMouseOver(JNIEnv* env)
     jobject mouseOver = ObjectField(env, mc, "objectMouseOver");
     env->DeleteLocalRef(mc);
     return mouseOver;
+}
+
+jobject Minecraft::GetSession(JNIEnv* env)
+{
+    if (!env)
+        return nullptr;
+
+    jobject mc = GetTheMinecraft(env);
+    if (!mc)
+        return nullptr;
+
+    jobject session = ObjectField(env, mc, "session");
+    env->DeleteLocalRef(mc);
+    return session;
+}
+
+bool Minecraft::SetSession(JNIEnv* env, jobject minecraft, jobject session)
+{
+    return SetObjectField(env, minecraft, "session", session);
 }
 
 void Minecraft::SetLeftClickCounter(int value, JNIEnv* env)

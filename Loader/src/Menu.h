@@ -31,6 +31,7 @@ namespace omega::loader
         void DrawCombatTab();
         void DrawWatermarkTab();
         void DrawSettingsTab();
+        void DrawAltManagerTab();
 
         void SetStatus(const std::string& text, bool error);
 
@@ -44,6 +45,8 @@ namespace omega::loader
         float m_tabAlpha = 0.f;
         bool m_exit = false;
         bool m_allowDrag = true;
+        char m_altUsername[17]{};
+        std::uint32_t m_altRequest = 0;
 
         std::string m_status;
         bool m_statusError = false;

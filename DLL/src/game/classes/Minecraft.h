@@ -10,6 +10,8 @@ public:
     static jobject GetCurrentScreen(JNIEnv* env);
     static jobject GetPlayerController(JNIEnv* env);
     static jobject GetObjectMouseOver(JNIEnv* env);
+    static jobject GetSession(JNIEnv* env);
+    static bool SetSession(JNIEnv* env, jobject minecraft, jobject session);
     static void SetLeftClickCounter(int value, JNIEnv* env);
     static void SetRightClickCounter(int value, JNIEnv* env);
 

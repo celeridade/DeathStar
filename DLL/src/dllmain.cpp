@@ -1,9 +1,11 @@
 #include <windows.h>
 #include <thread>
 #include <chrono>
+#include <string>
 #include "Shared.h"
 #include "game/jni/GameInstance.h"
 #include "Features/AutoClicker.h"
+#include "Features/AltManager.h"
 #include "Features/NoHitDelay.h"
 #include "Features/NoJumpDelay.h"
 #include "features/render/Watermark.h"
@@ -16,6 +18,7 @@ using namespace omega::dll::features;
 using omega::dll::features::render::Watermark;
 
 static AutoClicker* g_autoClicker = nullptr;
+static AltManager* g_altManager = nullptr;
 static NoHitDelay* g_noHitDelay = nullptr;
 static NoJumpDelay* g_noJumpDelay = nullptr;
 static omega::shared::SharedConfig* g_sharedConfig = nullptr;
@@ -69,6 +72,16 @@ static void TickGame(JNIEnv* env) {
     if (g_autoClicker)
         g_autoClicker->UpdateFromGame(env);
 
+    if (g_sharedConfig && g_altManager && g_sharedConfig->altManagerRequest != g_sharedConfig->altManagerAcknowledged)
+    {
+        const std::string username = g_sharedConfig->altManagerUsername;
+        const bool result = username.empty()
+            ? g_altManager->Reset(env)
+            : g_altManager->Apply(env, username);
+        g_sharedConfig->altManagerResult = result ? 1 : 2;
+        g_sharedConfig->altManagerAcknowledged = g_sharedConfig->altManagerRequest;
+    }
+
     if (g_noHitDelay)
         g_noHitDelay->Tick(env);
 
@@ -114,6 +127,7 @@ static void MainThread() {
     g_Game->InitializeGame();
 
     g_autoClicker = new AutoClicker();
+    g_altManager = new AltManager();
     g_noHitDelay = new NoHitDelay();
     g_noJumpDelay = new NoJumpDelay();
 
@@ -164,8 +178,14 @@ static void MainThread() {
 
     g_autoClicker->Stop();
 
+    JNIEnv* env = g_Game->GetCurrentEnv();
+    if (env && !g_altManager->Reset(env))
+        g_altManager->Release(env);
+
     delete g_autoClicker;
     g_autoClicker = nullptr;
+    delete g_altManager;
+    g_altManager = nullptr;
     delete g_noHitDelay;
     g_noHitDelay = nullptr;
     delete g_noJumpDelay;

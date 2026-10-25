@@ -11,6 +11,8 @@ AutoClicker interno leve para Minecraft 1.8.9.
 - **AutoClicker** — CPS mín/máx randomizado, jitter, modo burst (trava no CPS máximo), só-clicando-segurando, não clicar em menus, controle de quebrar blocos, keybind de toggle (suporte a M4/M5), contador de CPS
 - **NoHitDelay** — remove o delay de hit
 - **NoJumpDelay** — remove o delay de pulo
+- **BlockHit** — os modos Manual e Automático exigem segurar o botão direito; o Automático permite configurar o intervalo entre cliques
+- **Alt Manager** — troca localmente o nome da sessão e permite restaurar a sessão original
 
 **Overlay**
 - **Watermark in-game** — nome, usuário, FPS, CPS, hora, posição por canto + cor customizável, desenhada via render hook
@@ -67,9 +69,13 @@ Como Usar
 2. Rode o Loader.exe como Administrador.
 3. Selecione o processo do jogo no dropdown.
 4. Configure as abas Combate / Watermark.
+   - Em Combate, ative BlockHit e segure o botão direito. O modo Automático permite ajustar o intervalo entre os cliques.
+   - Em Alt Manager, aplique um nick offline ou restaure a sessão original.
 5. Clique em Inject.
 6. Alterne o AutoClicker in-game pela keybind configurada. Fechar o Loader ejeta a DLL.
 A config é salva automaticamente ao sair.
+
+O Alt Manager altera somente a sessão local do cliente; não autentica outra conta nem altera a identidade já validada pelo servidor.
 Configuração
 Opção	Padrão	Descrição
 autoClickerMinCps / MaxCps	10 / 14	Intervalo de clique randomizado

@@ -4114,7 +4114,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
 
     if (is_multiline) // Open group before calling GetID() because groups tracks id created within their scope (including the scrollbar)
         BeginGroup();
-    const ImGuiID id = window->GetID(hint);
+    const ImGuiID id = window->GetID(label);
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
     const ImVec2 frame_size = CalcItemSize(size_arg, CalcItemWidth(), (is_multiline ? g.FontSize * 8.0f : label_size.y)); // Arbitrary default of 8 lines high for multi-line
     const ImVec2 total_size = ImVec2(frame_size.x + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f), frame_size.y);
@@ -4798,8 +4798,9 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
         GetWindowDrawList()->AddRect(frame_bb.Min, frame_bb.Max, GetColorU32(c::elements::background_widget), c::elements::rounding);
     }
 
-    const ImVec4 clip_rect(frame_bb.Min.x + 10, frame_bb.Min.y, frame_bb.Min.x + inner_size.x - size_arg.y, frame_bb.Min.y + inner_size.y); // Not using frame_bb.Max because we have adjusted size
-    ImVec2 draw_pos = is_multiline ? draw_window->DC.CursorPos : frame_bb.Min + ImVec2((size_arg.y - CalcTextSize(hint).y), (size_arg.y - CalcTextSize(hint).y) - 1) / 2;
+    const float text_offset = (frame_size.y - CalcTextSize(hint).y) * 0.5f;
+    const ImVec4 clip_rect(frame_bb.Min.x + text_offset, frame_bb.Min.y, frame_bb.Min.x + inner_size.x - frame_size.y, frame_bb.Min.y + inner_size.y); // Not using frame_bb.Max because we have adjusted size
+    ImVec2 draw_pos = is_multiline ? draw_window->DC.CursorPos : frame_bb.Min + ImVec2(text_offset, text_offset - 0.5f);
     ImVec2 text_size(0.0f, 0.0f);
 
     PushFont(font::lexend_bold);
@@ -5003,11 +5004,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
     if (is_password && !is_displaying_hint)
         PopFont();
 
-    GetWindowDrawList()->AddRectFilledMultiColor(frame_bb.Min + ImVec2(1, 1), frame_bb.Max - ImVec2(size_arg.y - CalcTextSize(hint).y - 1, 1), GetColorU32(c::elements::background, 0.f), GetColorU32(c::elements::background, 1.f), GetColorU32(c::elements::background, 1.f), GetColorU32(c::elements::background, 0.f), c::elements::rounding);
-
-    PushFont(font::icomoon_widget2);
-    GetWindowDrawList()->AddText(frame_bb.Max - ImVec2((size_arg.y + CalcTextSize(label).x) / 2, (size_arg.y + CalcTextSize(label).x) / 2), GetColorU32(c::accent), label);
-    PopFont();
+    GetWindowDrawList()->AddRectFilledMultiColor(frame_bb.Min + ImVec2(1, 1), frame_bb.Max - ImVec2(frame_size.y - CalcTextSize(hint).y - 1, 1), GetColorU32(c::elements::background, 0.f), GetColorU32(c::elements::background, 1.f), GetColorU32(c::elements::background, 1.f), GetColorU32(c::elements::background, 0.f), c::elements::rounding);
 
     if (is_multiline)
     {

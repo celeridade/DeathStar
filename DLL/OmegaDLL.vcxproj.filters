@@ -27,6 +27,9 @@
     <ClInclude Include="src\Features\AutoClicker.h">
       <Filter>Header Files\Features</Filter>
     </ClInclude>
+    <ClInclude Include="src\Features\AltManager.h">
+      <Filter>Header Files\Features</Filter>
+    </ClInclude>
     <ClInclude Include="src\Features\NoHitDelay.h">
       <Filter>Header Files\Features</Filter>
     </ClInclude>
@@ -66,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Features\AutoClicker.cpp">
+      <Filter>Source Files\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Features\AltManager.cpp">
       <Filter>Source Files\Features</Filter>
     </ClCompile>
     <ClCompile Include="src\Features\NoHitDelay.cpp">

@@ -613,6 +613,7 @@ static void ApplyBadlionMappings()
 static void ApplyCheatBreakerMappings()
 {
     s_ClassMappings["Minecraft"] = "IllIIIlIlllllIllllIIIIIIl";
+    s_ClassMappings["Session"] = "IlllIIlIllIIIllllIllIllll";
     s_ClassMappings["EntityClientPlayerMP"] = "IllIIIllIlIIlllIIIIllIlIl";
     s_ClassMappings["EntityPlayerSP"] = "IlllllllIIIIIIIIllIlIIIll";
     s_ClassMappings["EntityPlayer"] = "IllllIIlIIlIlIIlIlIlllllI";
@@ -624,6 +625,7 @@ static void ApplyCheatBreakerMappings()
     s_ClassMappings["PlayerControllerMP"] = "IlIIIlIlIlIIIIlllIlIlIlll";
 
     s_FieldMappings["theMinecraft"] = "IllIIIIIIllllIIIIllIllIll";
+    s_FieldMappings["session"] = "IllIIlllIIIIIllIIIllIIlIl";
     s_FieldMappings["thePlayer"] = "IllIIlIlIIlIIIIllIlIlIlll";
     s_FieldMappings["theWorld"] = "IlllIllllIIllllIllIlllIll";
     s_FieldMappings["currentScreen"] = "IlIIllIIlIlIllIIIIlIIIlIl";
